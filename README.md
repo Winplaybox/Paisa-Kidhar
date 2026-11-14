@@ -27,8 +27,12 @@ apps/api/           FastAPI backend
 packages/           Shared contracts, design tokens and config
 supabase/           SQL migrations and demo seed data
 docs/               Product, architecture, security and release documentation
-.claude/skills/     Reusable AI-agent skills
+.claude/skills/     Thin project adapter to shared agent skill
 ```
+
+## Shared AI-agent workflow
+
+Common, project-agnostic agent instructions live in [Winplaybox/emergentagent](https://github.com/Winplaybox/emergentagent). This repository keeps only project-specific context and a small Claude Code adapter; the shared skill is the source of truth.
 
 ## Local development
 
