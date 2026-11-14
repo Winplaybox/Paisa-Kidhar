@@ -34,7 +34,10 @@ You already have the Google provider enabled in Supabase. The app uses **native*
 
 Common error: `DEVELOPER_ERROR` = SHA-1 / package mismatch on the Android client.
 
-## 3. Python backend on Render (free)
+## 3. Python backend on Render (free) — live ✅
+
+Deployed: **https://paisa-kidhar-api.onrender.com** (service `srv-dbsd13bl550s7384e8hg`, Singapore, Docker, auto-deploys this branch).
+To redeploy from scratch instead:
 
 1. render.com → **New → Blueprint** → select `Winplaybox/paisa-kidhar` → it reads `render.yaml`.
 2. After deploy, copy the URL (e.g. `https://paisa-kidhar-api.onrender.com`) → `EXPO_PUBLIC_API_URL`.
@@ -45,6 +48,9 @@ API (only PDF/Excel import + smart insights do). No secrets on the server — it
 their JWT, so RLS still applies.
 
 ## 4. AdMob
+
+> Until real IDs are provided the app uses Google's official **test** App ID and ad units automatically, so builds
+> never crash and no invalid traffic is generated. Add the real IDs as EAS env vars before the production build.
 
 1. AdMob → **Apps → Add app → Android → not yet published** → name *Paisa Kidhar?* → copy **App ID**
    (`ca-app-pub-…~…`) → `ADMOB_ANDROID_APP_ID` (build-time, native manifest).
