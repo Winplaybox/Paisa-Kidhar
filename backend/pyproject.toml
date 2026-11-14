@@ -1,0 +1,13 @@
+[tool.ruff]
+line-length = 140
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "S"]
+ignore = ["S101", "B008", "E731", "E501"]  # long regex literals are clearer unwrapped
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["E702"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

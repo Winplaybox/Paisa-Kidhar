@@ -1,0 +1,4 @@
+-r requirements.txt
+pytest==9.*
+ruff==0.14.*
+fpdf2==2.8.*

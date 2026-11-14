@@ -1,51 +1,74 @@
-# Paisa-Kidhar
+# Paisa Kidhar? 💸
 
-India-first wedding dream registry: help couples receive contributions toward goals they actually care about instead of duplicate physical gifts.
+> **Branch note:** this branch implements the *daily budget tracker* concept. `main`'s docs (`docs/PRODUCT_SPEC.md`, `AGENTS.md`) currently describe a *wedding dream registry* under the same codename — decide which product this repo is for before merging.
 
-> Working codename. Final consumer brand name is still to be confirmed.
+> Salary aati hai, gayab ho jaati hai. Ab pata chalega **kidhar**.
 
-## Product status
+Android app that turns your monthly income into a **daily budget**, minuses every kharcha live, and sends a **nightly report card** — "Your daily income budget was ₹3,333 and you spent ₹4,200. Grade D 💸".
 
-This repository starts with the product/engineering blueprint. The demo must use fictional seed data and simulated payments. Live payment processing and production ads remain disabled until credentials, policy, legal/compliance and release reviews are complete.
+| | |
+|---|---|
+| **Mobile** | Expo SDK 58 · React Native 0.88 · TypeScript · Expo Router · Reanimated 4 · React Query |
+| **Auth + DB** | Supabase (Google sign-in, Postgres, Row Level Security) — tables prefixed `pk_` |
+| **Backend** | Python 3.13 · FastAPI — statement (CSV/Excel/PDF) parsing + insights engine |
+| **Ads** | AdMob via `react-native-google-mobile-ads` with Google UMP consent |
+| **Cost** | ₹0 — Supabase free, Render free, EAS free tier, GitHub Actions |
 
-## Planned stack
+## Features
 
-- Mobile: React Native + Expo + TypeScript
-- API: Python 3.12+ + FastAPI + Pydantic
-- Data/Auth/Storage: Supabase Postgres, Supabase Auth, Storage and RLS
-- CI: GitHub Actions
-- Future monetization: optional transparent service fee and AdMob behind feature flags
+- **Daily income budget** — `monthly income ÷ days in month` (or after fixed costs like rent/EMI/SIP), optional carry-forward
+- **Live budget ring** — animated, turns amber at 80%, red when you cross it
+- **Quick add** — Coffee / Blinkit / Zepto / Swiggy / Amazon… tap to edit, long-press to log instantly
+- **Bank SMS import** — paste one or many debit SMS; amount, merchant, date, category auto-extracted on-device (HDFC, SBI, ICICI, Axis, Kotak, UPI VPAs). Credits skipped, duplicates blocked
+- **Statement import** — CSV parsed on-device; PDF/Excel parsed by the Python API (never stored)
+- **Morning + night notifications** — local, offline, re-planned on every change so tonight's numbers are real
+- **Report card** — A+ → F grade with a Hinglish roast, category split, biggest kharcha, share
+- **Insights** — donut / bars by category, daily bars vs budget line, cumulative month-pace line, weekday heat, 6-month stacked trend, top merchants, Python "smart insights" (subscriptions, leaks, spikes, MoM trends, pace warnings)
+- **History** — FlashList, grouped by day, search
+- **Privacy** — RLS-isolated per user, CSV export, one-tap delete-all-data (Play requirement)
 
-## Repository map
+## Repo layout
 
-See [Product specification](docs/PRODUCT_SPEC.md), [Architecture](docs/ARCHITECTURE.md), [Security](docs/SECURITY.md), [Data model](docs/DATA_MODEL.md), [UX flows](docs/UX_FLOWS.md), [QA plan](docs/QA_TEST_PLAN.md), and [Play Store release checklist](docs/PLAY_STORE_RELEASE.md).
-
-```text
-apps/mobile/        Expo app
-apps/web/           Public registry and admin web surfaces (planned)
-apps/api/           FastAPI backend
-packages/           Shared contracts, design tokens and config
-supabase/           SQL migrations and demo seed data
-docs/               Product, architecture, security and release documentation
-.claude/skills/     Thin project adapter to shared agent skill
+```
+apps/mobile/          Expo app (src/app = screens, src/lib = pure logic, src/data = Supabase queries)
+backend/              FastAPI service (app/parsing.py, app/insights.py) + pytest
+supabase/migrations/  SQL schema, RLS policies, RPCs
+store/                Play Store graphics + listing copy
+docs/                 SETUP guide, privacy policy, account-deletion page
+.github/workflows/    CI (typecheck, lint, tests, bundle) + manual EAS build/submit
+render.yaml           One-click Render deploy for the API
 ```
 
-## Shared AI-agent workflow
+## Quick start
 
-Common, project-agnostic agent instructions live in [Winplaybox/emergentagent](https://github.com/Winplaybox/emergentagent). This repository keeps only project-specific context and a small Claude Code adapter; the shared skill is the source of truth.
+```bash
+# Mobile
+cd apps/mobile
+cp .env.example .env          # fill EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID + EXPO_PUBLIC_API_URL
+npm install
+npx expo run:android          # needs a dev build (Google Sign-In + AdMob are native) — or: npm run build:preview
 
-## Local development
+# Backend
+cd backend
+python -m venv .venv && . .venv/bin/activate
+pip install -r requirements-dev.txt
+pytest -q
+uvicorn app.main:app --reload
+```
 
-Implementation setup commands will be added with the initial app scaffold. Do not invent credentials: copy `.env.example` and supply project-specific values through local environment variables or secret management.
+Full production checklist (Google OAuth, AdMob, Render, EAS, Play Console): **[docs/SETUP.md](docs/SETUP.md)**.
 
-## Security
+## Quality gates
 
-- Never commit secrets, service-role keys, OAuth client secrets, signing keys or payment credentials.
-- Use integer paise for money.
-- Only server-verified payment events can mark contributions successful.
-- All user-facing tables must have tested RLS policies.
-- Never grant admin role through user-editable profile metadata.
+| Check | Command |
+|---|---|
+| Typecheck | `cd apps/mobile && npm run typecheck` |
+| Lint | `cd apps/mobile && npx expo lint` |
+| Parser/budget unit tests | `cd apps/mobile && npm test` |
+| Android bundle | `cd apps/mobile && npx expo export --platform android` |
+| API tests + lint | `cd backend && pytest -q && ruff check .` |
 
-## Free-first policy
+All run in CI on every push.
 
-Prefer free/open-source tools and free tiers. Verify quotas and inactivity limits. Payment gateway charges, domains, storage/hosting overages and some build services may cost money; no paid service may be enabled without explicit approval.
+---
+Made with ❤️ by [WinPlayBox](https://winplaybox.in)

@@ -1,0 +1,31 @@
+# Manual Play Store build via Expo (EAS) — free tier: ~15 Android builds/month.
+# Needs repo secret EXPO_TOKEN (expo.dev → Account settings → Access tokens)
+# and the EXPO_PUBLIC_* / ADMOB_* values set as EAS environment variables (see docs/SETUP.md).
+name: Android build
+on:
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: preview (APK) or production (AAB)
+        type: choice
+        options: [preview, production]
+        default: preview
+      submit:
+        description: Submit production build to Play internal track
+        type: boolean
+        default: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: apps/mobile } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm, cache-dependency-path: apps/mobile/package-lock.json }
+      - uses: expo/expo-github-action@v8
+        with: { eas-version: latest, token: '${{ secrets.EXPO_TOKEN }}' }
+      - run: npm ci
+      - run: eas build -p android --profile ${{ inputs.profile }} --non-interactive --no-wait
+      - if: ${{ inputs.submit && inputs.profile == 'production' }}
+        run: eas submit -p android --profile production --latest --non-interactive
