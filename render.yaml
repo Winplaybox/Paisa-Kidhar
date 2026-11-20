@@ -1,0 +1,80 @@
+# Render Blueprint — free tier. Secrets are marked sync:false and entered in the Render dashboard.
+services:
+  - type: web
+    name: paisa-kidhar-api
+    runtime: python
+    plan: free
+    region: singapore
+    rootDir: apps/api
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:create_app --factory --host 0.0.0.0 --port $PORT --no-proxy-headers
+    healthCheckPath: /healthz
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.8
+      - key: ENVIRONMENT
+        value: production
+      - key: SUPABASE_URL
+        value: https://xatbfyiytcnogfbtfsym.supabase.co
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_JWT_SECRET
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: PLEDGE_TOKEN_SECRET
+        generateValue: true
+      - key: IP_HASH_SALT
+        generateValue: true
+      - key: TRUSTED_PROXY_HOPS
+        value: "1"
+      - key: PUBLIC_WEB_URL
+        value: https://paisa.winplaybox.in
+      - key: CORS_ORIGINS
+        value: https://paisa.winplaybox.in
+      - key: PAYMENTS_ENABLED
+        value: "false"
+      - key: DODO_PAYMENTS_ENVIRONMENT
+        value: test_mode
+      - key: DODO_PAYMENTS_API_KEY
+        sync: false
+      - key: DODO_PAYMENTS_WEBHOOK_KEY
+        sync: false
+      - key: DODO_PREMIUM_PRODUCT_ID
+        sync: false
+      - key: PREMIUM_PRICE_PAISE
+        value: "49900"
+      - key: CHECKOUT_RETURN_URL
+        value: https://paisa.winplaybox.in/billing/return
+
+  - type: web
+    name: paisa-kidhar-web
+    runtime: static
+    rootDir: apps/mobile
+    buildCommand: npm ci && npx expo export --platform web --output-dir dist
+    staticPublishPath: dist
+    autoDeploy: true
+    envVars:
+      - key: EXPO_PUBLIC_API_URL
+        value: https://paisa-kidhar-api.onrender.com
+      - key: EXPO_PUBLIC_WEB_URL
+        value: https://paisa.winplaybox.in
+      - key: EXPO_PUBLIC_SUPABASE_URL
+        value: https://xatbfyiytcnogfbtfsym.supabase.co
+      - key: EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+        sync: false
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    headers:
+      - path: /*
+        name: X-Frame-Options
+        value: DENY
+      - path: /*
+        name: Referrer-Policy
+        value: strict-origin-when-cross-origin
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
