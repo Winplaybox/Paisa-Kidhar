@@ -35,6 +35,8 @@ class Settings(BaseSettings):
     dodo_payments_environment: Literal["test_mode", "live_mode"] = "test_mode"
     dodo_premium_product_id: str = ""
     premium_price_paise: int = 49900
+    dodo_shagun_card_product_id: str = ""
+    shagun_card_price_paise: int = 4900
     checkout_return_url: str = "https://paisa.winplaybox.in/billing/return"
 
     @field_validator("supabase_url", "public_web_url", "checkout_return_url")

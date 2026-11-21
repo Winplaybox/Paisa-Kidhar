@@ -85,6 +85,7 @@ export default function Gifts() {
             </Row>
             <Text variant="label">{c.is_anonymous ? `Anonymous${c.guest_name ? ` (${c.guest_name})` : ''}` : c.guest_name || 'A guest'}</Text>
             {c.guest_message ? <Text muted>“{c.guest_message}”</Text> : null}
+            {c.card ? <Text variant="label" color={t.colors.highlight}>✦ Sent you a Digital Shagun Card</Text> : null}
             {c.status === 'pledged' || c.status === 'guest_marked_paid' ? (
               <Row gap={t.space.sm}>
                 <Button title="Received" kind="accent" icon="checkmark" style={{ flex: 1 }} onPress={() => act(c, 'confirmed')} loading={decide.isPending && decide.variables?.id === c.id} />

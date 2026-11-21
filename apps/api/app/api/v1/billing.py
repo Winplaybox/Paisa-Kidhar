@@ -26,6 +26,7 @@ log = logging.getLogger("paisa.billing")
 router = APIRouter(prefix="/v1", tags=["billing"])
 WEBHOOK_TOLERANCE_S = 300
 APP_TAG = "paisa_kidhar"
+ORDER_TABLES = {"premium": "paisa.orders", "shagun_card": "paisa.card_orders"}  # fixed identifiers, never user input
 
 
 class CheckoutIn(BaseModel):
@@ -38,7 +39,9 @@ async def plans(cfg: Settings = Depends(settings)):
         "code": "premium_registry", "name": "Premium Registry", "price_paise": cfg.premium_price_paise, "currency": "INR",
         "billing": "one-time, per registry",
         "features": ["Up to 50 goals", "5 premium themes", "No ads for you or your guests", "Custom registry link",
-                     "Full insights + CSV export"]}]}
+                     "Full insights + CSV export"]}],
+        "shagun_card": {"enabled": cfg.payments_enabled and bool(cfg.dodo_shagun_card_product_id),
+                        "price_paise": cfg.shagun_card_price_paise, "designs": ["marigold", "rose", "royal", "mehendi"]}}
 
 
 @router.post("/billing/checkout", dependencies=[rate_limit("checkout", 10, 600)])
@@ -59,7 +62,7 @@ async def checkout(body: CheckoutIn, ident: Identity = Depends(current_identity)
         "billing_currency": "INR",
         "billing_address": {"country": "IN"},
         "return_url": f"{cfg.checkout_return_url}?order={order['id']}",
-        "metadata": {"app": APP_TAG, "order_id": str(order["id"]), "registry_id": str(r["id"]), "user_id": ident.user_id},
+        "metadata": {"app": APP_TAG, "kind": "premium", "order_id": str(order["id"]), "registry_id": str(r["id"]), "user_id": ident.user_id},
     }
     res = await client.post(f"{cfg.dodo_base_url}/checkouts", json=payload,
                             headers={"authorization": f"Bearer {cfg.dodo_payments_api_key}"})
@@ -120,8 +123,13 @@ async def dodo_webhook(request: Request, db=Depends(pool), cfg: Settings = Depen
     if meta.get("app") != APP_TAG or not meta.get("order_id"):
         return {"ok": True, "ignored": True}  # another WinPlayBox product on the same Dodo account
 
+    kind = meta.get("kind") or "premium"
+    if kind not in ORDER_TABLES:
+        return {"ok": True, "ignored": True}
+    table = ORDER_TABLES[kind]
     payment_id = str(data.get("payment_id") or "")
     order_id = str(meta["order_id"])
+    done = "update paisa.payment_events set processed_at=now() where provider='dodo' and event_id=$1"
     if etype == "payment.succeeded":
         # authoritative verification: re-fetch the payment from Dodo, never trust the webhook body alone
         res = await client.get(f"{cfg.dodo_base_url}/payments/{payment_id}",
@@ -132,25 +140,28 @@ async def dodo_webhook(request: Request, db=Depends(pool), cfg: Settings = Depen
         p = res.json()
         pmeta = p.get("metadata") or {}
         async with db.acquire() as conn, conn.transaction():
-            o = await conn.fetchrow("select * from paisa.orders where id=$1::uuid for update", order_id)
+            o = await conn.fetchrow(f"select * from {table} where id=$1::uuid for update", order_id)
             ok = (o is not None and p.get("status") == "succeeded" and str(pmeta.get("order_id")) == order_id
                   and int(p.get("total_amount") or 0) >= o["amount_paise"] and str(p.get("currency", "INR")).upper() == o["currency"])
             if not ok:
-                log.warning("dodo payment verification mismatch order=%s", order_id)
+                log.warning("dodo payment verification mismatch kind=%s order=%s", kind, order_id)
             elif o["status"] != "succeeded":
-                await conn.execute("update paisa.orders set status='succeeded', provider_payment_id=$2 where id=$1", o["id"], payment_id)
-                await conn.execute("update paisa.registries set plan='premium', premium_since=now() where id=$1", o["registry_id"])
-                await audit(conn, str(o["owner_id"]), "billing.premium_activated", "registry", str(o["registry_id"]), {"order_id": order_id})
-            await conn.execute("update paisa.payment_events set processed_at=now() where provider='dodo' and event_id=$1", event_id)
+                await conn.execute(f"update {table} set status='succeeded', provider_payment_id=$2 where id=$1", o["id"], payment_id)
+                if kind == "premium":
+                    await conn.execute("update paisa.registries set plan='premium', premium_since=now() where id=$1", o["registry_id"])
+                    await audit(conn, str(o["owner_id"]), "billing.premium_activated", "registry", str(o["registry_id"]), {"order_id": order_id})
+                else:
+                    await audit(conn, None, "billing.shagun_card_paid", "contribution", str(o["contribution_id"]), {"order_id": order_id})
+            await conn.execute(done, event_id)
     elif etype in ("payment.failed", "payment.cancelled"):
-        await db.execute("update paisa.orders set status=$2 where id=$1::uuid and status='created'", order_id,
+        await db.execute(f"update {table} set status=$2 where id=$1::uuid and status='created'", order_id,
                          "failed" if etype == "payment.failed" else "cancelled")
-        await db.execute("update paisa.payment_events set processed_at=now() where provider='dodo' and event_id=$1", event_id)
+        await db.execute(done, event_id)
     elif etype == "refund.succeeded":
         async with db.acquire() as conn, conn.transaction():
-            o = await conn.fetchrow("update paisa.orders set status='refunded' where id=$1::uuid returning *", order_id)
-            if o:
+            o = await conn.fetchrow(f"update {table} set status='refunded' where id=$1::uuid returning *", order_id)
+            if o and kind == "premium":
                 await conn.execute("update paisa.registries set plan='free' where id=$1", o["registry_id"])
                 await audit(conn, None, "billing.refunded", "registry", str(o["registry_id"]), {"order_id": order_id})
-            await conn.execute("update paisa.payment_events set processed_at=now() where provider='dodo' and event_id=$1", event_id)
+            await conn.execute(done, event_id)
     return {"ok": True}

@@ -90,6 +90,7 @@ def settings(api_dsn):
                     supabase_jwt_secret=JWT_SECRET, database_url=api_dsn, pledge_token_secret="p" * 40,
                     ip_hash_salt="s" * 20, payments_enabled=True, dodo_payments_api_key="dodo_test",
                     dodo_payments_webhook_key=WEBHOOK_KEY, dodo_premium_product_id="pdt_premium",
+                    dodo_shagun_card_product_id="pdt_card",
                     cors_origins="http://localhost:8081")
 
 

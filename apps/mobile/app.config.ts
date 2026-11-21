@@ -47,7 +47,7 @@ if (env.EXPO_PUBLIC_GOOGLE_IOS_URL_SCHEME) {
 const config: ExpoConfig = {
   name: 'Paisa Kidhar',
   slug: 'paisa-kidhar',
-  owner: env.EXPO_OWNER || undefined,
+  owner: 'winplaybox',
   scheme: 'paisakidhar',
   version: '1.0.0',
   orientation: 'portrait',
@@ -83,7 +83,7 @@ const config: ExpoConfig = {
   plugins,
   experiments: { typedRoutes: true },
   extra: {
-    eas: env.EAS_PROJECT_ID ? { projectId: env.EAS_PROJECT_ID } : undefined,
+    eas: { projectId: 'c4f42188-ff47-47f9-a9b2-7b4a9b23f49d' },
     router: { origin: `https://${webHost}` },
   },
 };

@@ -52,6 +52,7 @@ export type ContributionStatus = 'pledged' | 'guest_marked_paid' | 'confirmed' |
 export type Contribution = {
   id: string; reference: string; goal_id: string; goal_title: string; amount_paise: number; guest_name: string | null;
   guest_message: string | null; is_anonymous: boolean; status: ContributionStatus; created_at: string; marked_paid_at: string | null; decided_at: string | null;
+  card?: boolean;
 };
 export type Insights = {
   range: { from: string; to: string };
@@ -66,10 +67,14 @@ export type PublicRegistry = {
   slug: string; partner_one: string; partner_two: string; wedding_date: string | null; city: string | null; story: string; theme: RegistryTheme;
   show_progress: boolean; premium: boolean; suggested_amounts_paise: number[];
   goals: { id: string; title: string; description: string; category: Category; target_paise: number; status: string; raised_paise?: number; contributions_count?: number }[];
-  wishes: { name: string | null; message: string; at: string }[];
+  wishes: { name: string | null; message: string; at: string; card?: boolean }[];
 };
 export type Pledge = { reference: string; token: string; status: ContributionStatus; amount_paise: number; goal_title: string; payee_name: string; upi_vpa: string; upi_link: string };
-export type Plans = { payments_enabled: boolean; plans: { code: string; name: string; price_paise: number; billing: string; features: string[] }[] };
+export type Plans = { payments_enabled: boolean; plans: { code: string; name: string; price_paise: number; billing: string; features: string[] }[];
+  shagun_card?: { enabled: boolean; price_paise: number; designs: CardDesign[] } };
+export type CardDesign = 'marigold' | 'rose' | 'royal' | 'mehendi';
+export type ShagunCard = { id: string; status: string; design?: CardDesign; from?: string | null; message?: string | null;
+  partner_one?: string; partner_two?: string; slug?: string; theme?: RegistryTheme; wedding_date?: string | null; city?: string | null };
 export type AdminMetrics = { totals: Record<string, number>; weekly_signups: { week: string; n: number }[]; contribution_states: { status: string; n: number }[] };
 
 export type RegistryInput = Partial<Pick<Registry, 'partner_one' | 'partner_two' | 'wedding_date' | 'city' | 'story' | 'upi_vpa' | 'upi_payee_name' | 'theme' | 'slug' | 'show_progress'>>;
@@ -113,6 +118,9 @@ export const api = {
     request<{ status: ContributionStatus }>(`/v1/public/pledges/${reference}/mark-paid`, { method: 'POST', body: { token }, auth: false }),
 
   plans: () => request<Plans>('/v1/billing/plans', { auth: false }),
+  cardCheckout: (reference: string, token: string, email: string, design: CardDesign) =>
+    request<{ card_id: string; checkout_url: string }>(`/v1/public/pledges/${reference}/card-checkout`, { method: 'POST', body: { token, email, design }, auth: false }),
+  card: (id: string) => request<ShagunCard>(`/v1/public/cards/${id}`, { auth: false }),
   checkout: (registry_id: string) => request<{ order_id: string; checkout_url: string }>('/v1/billing/checkout', { method: 'POST', body: { registry_id } }),
   order: (id: string) => request<{ status: string; registry_id: string }>(`/v1/billing/orders/${id}`),
 
