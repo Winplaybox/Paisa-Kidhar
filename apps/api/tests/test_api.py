@@ -143,7 +143,7 @@ async def test_guest_pledge_flow_and_totals(client, make_user):
     assert r.json()["status"] == "confirmed"
     pub = (await client.get(f"/v1/public/registries/{slug}")).json()
     assert pub["goals"][0]["raised_paise"] == 200000
-    assert pub["wishes"][0] == {"name": "Mama ji", "message": "Enjoy Bali!", "at": pub["wishes"][0]["at"]}
+    assert pub["wishes"][0] == {"name": "Mama ji", "message": "Enjoy Bali!", "at": pub["wishes"][0]["at"], "card": False}
 
     ins = (await client.get(f"/v1/registries/{reg['id']}/insights", headers=u["h"])).json()
     assert ins["kpis"]["raised_paise"] == 200000 and ins["kpis"]["confirmed_count"] == 1
@@ -291,3 +291,40 @@ def test_client_ip_ignores_spoofed_left_entries():
     req = SimpleNamespace(headers={"x-forwarded-for": "6.6.6.6, 1.2.3.4"}, client=SimpleNamespace(host="10.0.0.1"),
                           app=SimpleNamespace(state=SimpleNamespace(settings=SimpleNamespace(trusted_proxy_hops=1))))
     assert client_ip(req) == "1.2.3.4"
+
+
+async def test_shagun_card_checkout_and_webhook(client, make_user, upstream):
+    u = await make_user()
+    reg = await _registry(client, u)
+    goal = await _goal(client, u, reg["id"])
+    await client.post(f"/v1/registries/{reg['id']}/publish", headers=u["h"])
+    p = (await client.post(f"/v1/public/registries/{reg['slug']}/pledges",
+                           json={"goal_id": goal["id"], "amount_paise": 110000, "guest_name": "Nani", "guest_message": "Jeete raho"},
+                           headers={"idempotency-key": uuid.uuid4().hex})).json()
+    bad = await client.post(f"/v1/public/pledges/{p['reference']}/card-checkout", json={"token": "0" * 64, "email": "n@x.com"})
+    assert bad.status_code == 404
+    r = await client.post(f"/v1/public/pledges/{p['reference']}/card-checkout",
+                          json={"token": p["token"], "email": "nani@example.com", "design": "royal"})
+    assert r.status_code == 200, r.text
+    card_id = r.json()["card_id"]
+    sent = upstream.checkouts[-1]
+    assert sent["metadata"]["kind"] == "shagun_card" and sent["product_cart"][0]["product_id"] == "pdt_card"
+    assert (await client.get(f"/v1/public/cards/{card_id}")).json() == {"id": card_id, "status": "created"}
+
+    payment = {"payment_id": "pay_card_1", "status": "succeeded", "total_amount": 4900, "currency": "INR",
+               "metadata": {"app": "paisa_kidhar", "kind": "shagun_card", "order_id": card_id}}
+    upstream.payments["pay_card_1"] = payment
+    event = json.dumps({"type": "payment.succeeded", "data": payment}).encode()
+    ts = int(time.time())
+    h = {"webhook-id": "evt_card", "webhook-timestamp": str(ts), "webhook-signature": _sign(event, "evt_card", ts)}
+    assert (await client.post("/v1/webhooks/dodo", content=event, headers=h)).json() == {"ok": True}
+    card = (await client.get(f"/v1/public/cards/{card_id}")).json()
+    assert card["status"] == "succeeded" and card["from"] == "Nani" and card["design"] == "royal" and card["message"] == "Jeete raho"
+    # a second card for the same gift is refused; the gift itself is untouched
+    again = await client.post(f"/v1/public/pledges/{p['reference']}/card-checkout", json={"token": p["token"], "email": "nani@example.com"})
+    assert again.status_code == 409
+    items = (await client.get(f"/v1/registries/{reg['id']}/contributions", headers=u["h"])).json()["items"]
+    assert items[0]["card"] is True and items[0]["status"] == "pledged"
+    # premium is not granted by a card payment
+    assert (await client.get(f"/v1/registries/{reg['id']}", headers=u["h"])).json()["plan"] == "free"
+    assert (await client.get("/v1/public/cards/not-a-uuid")).status_code == 404

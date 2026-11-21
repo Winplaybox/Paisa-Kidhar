@@ -79,7 +79,7 @@ export function useAuth() {
 export function friendlyAuthError(e: unknown): string {
   const msg = e instanceof Error ? e.message : String(e);
   if (/already registered|already been registered/i.test(msg)) return 'An account with this email already exists. Try signing in.';
-  if (/password should be|weak/i.test(msg)) return 'Choose a stronger password (at least 8 characters, mix letters and numbers).';
+  if (/password should|weak/i.test(msg)) return 'Choose a stronger password: 8+ characters with uppercase, lowercase, a number and a symbol.';
   if (/rate limit|too many/i.test(msg)) return 'Too many attempts. Please wait a minute and try again.';
   return msg || 'Something went wrong. Please try again.';
 }

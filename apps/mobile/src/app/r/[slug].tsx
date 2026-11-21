@@ -10,6 +10,7 @@ import { Linking, Platform, ScrollView, Switch, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { ShagunCardUpsell } from '@/components/ShagunCardUpsell';
 import { Anim, ConfettiBurst } from '@/design-system/Anim';
 import { Banner, Button, Card, Chip, EmptyState, ErrorState, Field, LoadingList, ProgressBar, Row, Text } from '@/design-system/components';
 import { useTheme } from '@/design-system/ThemeProvider';
@@ -128,7 +129,7 @@ export default function PublicRegistryScreen() {
           {r.wishes.length ? (
             <>
               <Text variant="heading">Blessings</Text>
-              {r.wishes.map((w, i) => <Card key={i} tone="alt"><Text>“{w.message}”</Text><Text variant="caption" muted>— {w.name ?? 'A well-wisher'}</Text></Card>)}
+              {r.wishes.map((w, i) => <Card key={i} tone={w.card ? 'accent' : 'alt'}><Text>“{w.message}”</Text><Text variant="caption" muted>— {w.name ?? 'A well-wisher'}{w.card ? '  ✦ Shagun Card' : ''}</Text></Card>)}
             </>
           ) : null}
         </>
@@ -193,6 +194,8 @@ export default function PublicRegistryScreen() {
           <Text variant="title" style={{ textAlign: 'center' }}>Thank you!</Text>
           <Text muted style={{ textAlign: 'center' }}>{couple} will see your {formatINR(pledge.amount_paise)} gift towards “{pledge.goal_title}” once it reaches their UPI.</Text>
           <Card tone="alt"><Text variant="caption" muted>Reference</Text><Text variant="heading" selectable>{pledge.reference}</Text></Card>
+          <ShagunCardUpsell pledge={pledge} partnerOne={r.partner_one} partnerTwo={r.partner_two} guestName={anon ? undefined : name.trim() || undefined}
+            message={message.trim() || undefined} weddingDate={r.wedding_date} />
           <Button title="Back to the registry" kind="secondary" full={false} onPress={reset} />
         </View>
       ) : null}

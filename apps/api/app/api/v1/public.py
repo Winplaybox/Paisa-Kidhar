@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 from ... import domain
 from ...core.errors import AppError, NotFound
 from ...core.security import client_ip, hash_ip, pledge_token, rate_limit, verify_pledge_token
-from ..deps import pool, rec, settings
+from ..deps import http, pool, rec, settings
 
 router = APIRouter(prefix="/v1/public", tags=["public"])
 
@@ -23,6 +23,15 @@ class PledgeIn(BaseModel):
 
 class MarkPaidIn(BaseModel):
     token: str = Field(min_length=64, max_length=64)
+
+
+CARD_DESIGNS = ("marigold", "rose", "royal", "mehendi")
+
+
+class CardCheckoutIn(BaseModel):
+    token: str = Field(min_length=64, max_length=64)
+    email: str = Field(min_length=5, max_length=254, pattern=r"^[^\s@]+@[^\s@]+\.[^\s@]{2,}$")
+    design: str = Field(default="marigold")
 
 
 async def _published(db, slug: str):
@@ -43,11 +52,12 @@ async def public_registry(slug: str, db=Depends(pool)):
            where g.registry_id=$1 and g.visibility='public' and g.status in ('active','completed')
            group by g.id order by g.position, g.created_at""", r["id"])
     wishes = await db.fetch(
-        """select case when is_anonymous or coalesce(guest_name,'')='' then null else guest_name end as name,
-                  guest_message as message, decided_at as at
-           from paisa.contributions
-           where registry_id=$1 and status='confirmed' and coalesce(guest_message,'')<>''
-           order by decided_at desc limit 20""", r["id"])
+        """select case when c.is_anonymous or coalesce(c.guest_name,'')='' then null else c.guest_name end as name,
+                  c.guest_message as message, c.decided_at as at,
+                  exists(select 1 from paisa.card_orders k where k.contribution_id=c.id and k.status='succeeded') as card
+           from paisa.contributions c
+           where c.registry_id=$1 and c.status='confirmed' and coalesce(c.guest_message,'')<>''
+           order by c.decided_at desc limit 20""", r["id"])
     show = r["show_progress"]
     out_goals = []
     for g in goals:
@@ -127,3 +137,57 @@ async def pledge_status(reference: str, token: str, db=Depends(pool), cfg=Depend
     if not row:
         raise NotFound("Gift not found.")
     return rec(row)
+
+
+@router.post("/pledges/{reference}/card-checkout", dependencies=[rate_limit("card_checkout", 10, 600)])
+async def card_checkout(reference: str, body: CardCheckoutIn, db=Depends(pool), cfg=Depends(settings), client=Depends(http)):
+    """Guest buys a ₹49 Digital Shagun Card (a digital product sold by the platform). Gift money is untouched."""
+    if not verify_pledge_token(reference, body.token, cfg):
+        raise NotFound("Gift not found.")
+    if not (cfg.payments_enabled and cfg.dodo_shagun_card_product_id):
+        raise AppError("Shagun cards aren't available yet.", code="payments_disabled", status=503)
+    if body.design not in CARD_DESIGNS:
+        raise AppError("Pick a card design.", code="invalid_design", status=422)
+    c = await db.fetchrow("""select c.*, r.status as registry_status from paisa.contributions c
+                             join paisa.registries r on r.id=c.registry_id where c.reference=$1""", reference)
+    if not c or c["status"] == "rejected" or c["registry_status"] != "published":
+        raise AppError("This gift can't get a card.", code="invalid_state", status=409)
+    if await db.fetchval("select 1 from paisa.card_orders where contribution_id=$1 and status='succeeded'", c["id"]):
+        raise AppError("You already sent a card with this gift.", code="already_sent", status=409)
+    order = await db.fetchrow("""insert into paisa.card_orders(contribution_id, registry_id, design, amount_paise, buyer_email)
+                                 values ($1,$2,$3,$4,$5) returning *""",
+                              c["id"], c["registry_id"], body.design, cfg.shagun_card_price_paise, body.email.strip().lower())
+    payload = {
+        "product_cart": [{"product_id": cfg.dodo_shagun_card_product_id, "quantity": 1}],
+        "customer": {"email": body.email.strip().lower(), "name": (c["guest_name"] or "Guest")[:60]},
+        "billing_currency": "INR",
+        "billing_address": {"country": "IN"},
+        "return_url": f"{cfg.public_web_url}/card/{order['id']}",
+        "metadata": {"app": "paisa_kidhar", "kind": "shagun_card", "order_id": str(order["id"]), "reference": reference},
+    }
+    res = await client.post(f"{cfg.dodo_base_url}/checkouts", json=payload, headers={"authorization": f"Bearer {cfg.dodo_payments_api_key}"})
+    if res.status_code >= 300:
+        await db.execute("update paisa.card_orders set status='failed' where id=$1", order["id"])
+        raise AppError("Payment page couldn't be opened. Please try again.", code="checkout_failed", status=502)
+    data = res.json()
+    await db.execute("update paisa.card_orders set provider_session_id=$2 where id=$1", order["id"], data.get("session_id"))
+    return {"card_id": str(order["id"]), "checkout_url": data.get("checkout_url")}
+
+
+@router.get("/cards/{card_id}", dependencies=[rate_limit("card_read", 60, 60)])
+async def get_card(card_id: str, db=Depends(pool)):
+    k = await db.fetchrow("""select k.id, k.status, k.design, k.created_at, c.guest_name, c.guest_message, c.is_anonymous,
+                                    r.partner_one, r.partner_two, r.wedding_date, r.city, r.slug, r.theme
+                             from paisa.card_orders k join paisa.contributions c on c.id=k.contribution_id
+                             join paisa.registries r on r.id=k.registry_id
+                             where k.id=$1::uuid and r.moderation='ok'""", card_id)
+    if not k:
+        raise NotFound("Card not found.")
+    if k["status"] != "succeeded":
+        return {"id": str(k["id"]), "status": k["status"]}
+    return {
+        "id": str(k["id"]), "status": "succeeded", "design": k["design"],
+        "from": None if k["is_anonymous"] else (k["guest_name"] or None), "message": k["guest_message"],
+        "partner_one": k["partner_one"], "partner_two": k["partner_two"], "slug": k["slug"], "theme": k["theme"],
+        "wedding_date": k["wedding_date"].isoformat() if k["wedding_date"] else None, "city": k["city"],
+    }

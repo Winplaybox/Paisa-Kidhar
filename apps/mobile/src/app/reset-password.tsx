@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Banner, Button, Field, Screen, Text } from '@/design-system/components';
 import { friendlyAuthError, useAuth } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
+import { STRONG } from '@/lib/password';
 
 export default function ResetPassword() {
   const { session } = useAuth();
@@ -18,9 +19,9 @@ export default function ResetPassword() {
     <Screen>
       <Text variant="title">Choose a new password</Text>
       {err ? <Banner tone="negative" title={err} /> : null}
-      <Field label="New password" value={pw} onChangeText={setPw} secureTextEntry autoComplete="new-password" hint="At least 8 characters with a letter and a number" />
+      <Field label="New password" value={pw} onChangeText={setPw} secureTextEntry autoComplete="new-password" hint="8+ characters with uppercase, lowercase, a number and a symbol" />
       <Button title="Save password" kind="accent" loading={busy} onPress={async () => {
-        if (pw.length < 8 || !/\d/.test(pw)) { setErr('At least 8 characters with a letter and a number.'); return; }
+        if (!STRONG(pw)) { setErr('Use 8+ characters with uppercase, lowercase, a number and a symbol.'); return; }
         setBusy(true); setErr(null);
         const { error } = await supabase.auth.updateUser({ password: pw });
         setBusy(false);
