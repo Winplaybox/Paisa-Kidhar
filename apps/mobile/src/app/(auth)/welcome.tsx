@@ -11,7 +11,7 @@ export default function Welcome() {
   const t = useTheme();
   const [err, setErr] = useState<string | null>(null);
   return (
-    <Screen edges={['top', 'bottom']} style={{ paddingTop: t.space.xxxl, minHeight: '100%', justifyContent: 'center' }}>
+    <Screen fluid edges={['top', 'bottom']} style={{ paddingTop: t.space.xxxl, minHeight: '100%', justifyContent: 'center' }}>
       <View style={{ gap: t.space.md }}>
         <Anim name="gift" size={130} loop style={{ marginLeft: -12 }} />
         <View style={{ alignSelf: 'flex-start', backgroundColor: t.colors.accentBg, borderRadius: t.radius.pill, paddingHorizontal: 12, paddingVertical: 6 }}>

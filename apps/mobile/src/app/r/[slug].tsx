@@ -12,6 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ShagunCardUpsell } from '@/components/ShagunCardUpsell';
 import { Anim, ConfettiBurst } from '@/design-system/Anim';
+import { FluidBackground } from '@/design-system/FluidBackground';
 import { BackButton } from '@/design-system/BackButton';
 import { Banner, Button, Card, Chip, EmptyState, ErrorState, Field, LoadingList, ProgressBar, Row, Text } from '@/design-system/components';
 import { useTheme } from '@/design-system/ThemeProvider';
@@ -20,6 +21,7 @@ import { categoryIcon, categoryLabel, useCategories } from '@/lib/categories';
 import { config } from '@/lib/config';
 import { formatINR, formatINRCompact, parseRupeesToPaise } from '@/lib/money';
 import { errorMessage } from '@/lib/queries';
+import { payWithUpi } from '@/lib/upi';
 
 type Step = 'browse' | 'amount' | 'pay' | 'done';
 type Goal = PublicRegistry['goals'][number];
@@ -64,8 +66,13 @@ export default function PublicRegistryScreen() {
 
   const openUpi = async () => {
     if (!pledge) return;
-    try { await Linking.openURL(pledge.upi_link); setLaunched(true); }
-    catch { setErr('No UPI app found. Copy the UPI ID below and pay from any UPI app.'); }
+    setErr(null);
+    const outcome = await payWithUpi(pledge.upi_link);
+    setLaunched(true);
+    if (outcome === 'success') { await markPaid(); return; } // UPI app reported success → no button needed
+    if (outcome === 'no_app') { setErr('No UPI app found. Copy the UPI ID below and pay from any UPI app.'); return; }
+    if (outcome === 'failure') { setErr('Payment was not completed. You can try again — nothing was recorded.'); return; }
+    setConfirming(true); // pending / unknown: ask the guest once
   };
 
   const markPaid = async () => {
@@ -79,7 +86,7 @@ export default function PublicRegistryScreen() {
 
   // Coming back from the UPI app: bring the confirm question forward (we cannot see the bank result ourselves).
   useEffect(() => {
-    if (!launched || step !== 'pay') return;
+    if (!launched || step !== 'pay' || Platform.OS === 'android') return;
     const sub = AppState.addEventListener('change', (st) => { if (st === 'active') setConfirming(true); });
     return () => sub.remove();
   }, [launched, step]);
@@ -252,6 +259,7 @@ export default function PublicRegistryScreen() {
 function Wrap({ t, children }: { t: ReturnType<typeof useTheme>; children: React.ReactNode }) {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: t.colors.bg }}>
+      <FluidBackground intensity={0.8} />
       {router.canGoBack() ? <View style={{ paddingHorizontal: t.space.md, paddingTop: t.space.xs }}><BackButton /></View> : null}
       <ScrollView contentContainerStyle={{ padding: t.space.lg, gap: t.space.lg, paddingBottom: t.space.xxxl, maxWidth: 640, width: '100%', alignSelf: 'center' }}
         keyboardShouldPersistTaps="handled">
