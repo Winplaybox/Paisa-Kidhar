@@ -41,9 +41,10 @@ export type Registry = {
   upi_vpa: string | null; upi_payee_name: string | null; status: 'draft' | 'published' | 'paused' | 'archived'; plan: 'free' | 'premium';
   theme: RegistryTheme; show_progress: boolean; moderation: 'ok' | 'hidden'; public_path: string;
 };
-export type Category = 'honeymoon' | 'home' | 'travel' | 'experience' | 'item' | 'savings' | 'other';
+export type Category = string;
+export type CategoryInfo = { key: string; label: string; icon: string };
 export type Goal = {
-  id: string; registry_id: string; title: string; description: string; category: Category; target_paise: number; position: number;
+  id: string; registry_id: string; title: string; description: string; category: Category; custom_category?: string | null; target_paise: number; position: number;
   status: 'active' | 'paused' | 'archived' | 'completed'; visibility: 'public' | 'private'; target_date: string | null;
   raised_paise: number; contributions_count: number; pending_count: number;
 };
@@ -66,7 +67,7 @@ export type Insights = {
 export type PublicRegistry = {
   slug: string; partner_one: string; partner_two: string; wedding_date: string | null; city: string | null; story: string; theme: RegistryTheme;
   show_progress: boolean; premium: boolean; suggested_amounts_paise: number[];
-  goals: { id: string; title: string; description: string; category: Category; target_paise: number; status: string; raised_paise?: number; contributions_count?: number }[];
+  goals: { id: string; title: string; description: string; category: Category; custom_category?: string | null; target_paise: number; status: string; raised_paise?: number; contributions_count?: number }[];
   wishes: { name: string | null; message: string; at: string; card?: boolean }[];
 };
 export type Pledge = { reference: string; token: string; status: ContributionStatus; amount_paise: number; goal_title: string; payee_name: string; upi_vpa: string; upi_link: string };
@@ -78,7 +79,7 @@ export type ShagunCard = { id: string; status: string; design?: CardDesign; from
 export type AdminMetrics = { totals: Record<string, number>; weekly_signups: { week: string; n: number }[]; contribution_states: { status: string; n: number }[] };
 
 export type RegistryInput = Partial<Pick<Registry, 'partner_one' | 'partner_two' | 'wedding_date' | 'city' | 'story' | 'upi_vpa' | 'upi_payee_name' | 'theme' | 'slug' | 'show_progress'>>;
-export type GoalInput = { title: string; description?: string; category?: Category; target_rupees: number; target_date?: string | null; visibility?: 'public' | 'private' };
+export type GoalInput = { title: string; description?: string; category?: Category; custom_category?: string | null; target_rupees: number; target_date?: string | null; visibility?: 'public' | 'private' };
 
 const q = (params: Record<string, string | undefined>) => {
   const s = Object.entries(params).filter(([, v]) => v).map(([k, v]) => `${k}=${encodeURIComponent(v!)}`).join('&');
@@ -117,6 +118,7 @@ export const api = {
   markPaid: (reference: string, token: string) =>
     request<{ status: ContributionStatus }>(`/v1/public/pledges/${reference}/mark-paid`, { method: 'POST', body: { token }, auth: false }),
 
+  categories: () => request<{ categories: CategoryInfo[] }>('/v1/public/categories', { auth: false }),
   plans: () => request<Plans>('/v1/billing/plans', { auth: false }),
   cardCheckout: (reference: string, token: string, email: string, design: CardDesign) =>
     request<{ card_id: string; checkout_url: string }>(`/v1/public/pledges/${reference}/card-checkout`, { method: 'POST', body: { token, email, design }, auth: false }),

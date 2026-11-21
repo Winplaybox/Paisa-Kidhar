@@ -8,7 +8,7 @@ import { ShareCard } from '@/components/ShareCard';
 import { Banner, Button, Card, EmptyState, ErrorState, IconButton, LoadingList, ProgressBar, Row, Screen, Text } from '@/design-system/components';
 import { useTheme } from '@/design-system/ThemeProvider';
 import { api, type Goal } from '@/lib/api';
-import { CATEGORY_ICON } from '@/lib/categories';
+import { categoryIcon, useCategories } from '@/lib/categories';
 import { formatINR } from '@/lib/money';
 import { errorMessage, usePublish } from '@/lib/queries';
 import { useCurrentRegistry } from '@/lib/useCurrentRegistry';
@@ -16,6 +16,7 @@ import { useQueryClient } from '@tanstack/react-query';
 
 export default function Goals() {
   const t = useTheme();
+  const cats = useCategories();
   const cur = useCurrentRegistry();
   const qc = useQueryClient();
   const publish = usePublish(cur.id ?? '');
@@ -80,7 +81,7 @@ export default function Goals() {
           <Card key={g.id} onPress={() => router.push({ pathname: '/goal/[id]', params: { id: g.id, registry: r.id } })} accessibilityLabel={`Edit ${g.title}`}>
             <Row>
               <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: t.colors.accentBg, alignItems: 'center', justifyContent: 'center' }}>
-                <Ionicons name={CATEGORY_ICON[g.category]} size={20} color={t.colors.accent} />
+                <Ionicons name={categoryIcon(cats, g.category)} size={20} color={t.colors.accent} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text variant="label" numberOfLines={1}>{g.title}</Text>

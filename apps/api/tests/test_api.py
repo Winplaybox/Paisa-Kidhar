@@ -328,3 +328,25 @@ async def test_shagun_card_checkout_and_webhook(client, make_user, upstream):
     # premium is not granted by a card payment
     assert (await client.get(f"/v1/registries/{reg['id']}", headers=u["h"])).json()["plan"] == "free"
     assert (await client.get("/v1/public/cards/not-a-uuid")).status_code == 404
+
+
+async def test_categories_catalog_and_custom(client, make_user):
+    cats = (await client.get("/v1/public/categories")).json()["categories"]
+    keys = [c["key"] for c in cats]
+    assert len(keys) >= 15 and "jewellery" in keys and keys[-1] == "other"
+    owner = await make_user()
+    reg = await _registry(client, owner)
+    url = f"/v1/registries/{reg['id']}/goals"
+    r = await client.post(url, json={"title": "Gold set", "target_rupees": 50000, "category": "jewellery"}, headers=owner["h"])
+    assert r.status_code == 201 and r.json()["custom_category"] is None
+    r = await client.post(url, json={"title": "Drone", "target_rupees": 40000, "category": "other",
+                                     "custom_category": "  Photography   gear "}, headers=owner["h"])
+    assert r.status_code == 201 and r.json()["custom_category"] == "Photography gear"
+    gid = r.json()["id"]
+    # custom label is dropped when moving to a catalog category
+    r = await client.patch(f"/v1/goals/{gid}", json={"category": "electronics", "custom_category": "ignored"}, headers=owner["h"])
+    assert r.status_code == 200 and r.json()["custom_category"] is None
+    r = await client.post(url, json={"title": "X", "target_rupees": 1000, "category": "spaceship"}, headers=owner["h"])
+    assert r.status_code == 422
+    r = await client.post(url, json={"title": "X", "target_rupees": 1000, "category": "Bad Key!"}, headers=owner["h"])
+    assert r.status_code == 422

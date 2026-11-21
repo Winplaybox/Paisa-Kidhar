@@ -15,7 +15,7 @@ import { Anim, ConfettiBurst } from '@/design-system/Anim';
 import { Banner, Button, Card, Chip, EmptyState, ErrorState, Field, LoadingList, ProgressBar, Row, Text } from '@/design-system/components';
 import { useTheme } from '@/design-system/ThemeProvider';
 import { api, ApiError, type Pledge, type PublicRegistry } from '@/lib/api';
-import { CATEGORY_ICON } from '@/lib/categories';
+import { categoryIcon, categoryLabel, useCategories } from '@/lib/categories';
 import { config } from '@/lib/config';
 import { formatINR, formatINRCompact, parseRupeesToPaise } from '@/lib/money';
 import { errorMessage } from '@/lib/queries';
@@ -29,6 +29,7 @@ export default function PublicRegistryScreen() {
   const { slug, preview } = useLocalSearchParams<{ slug: string; preview?: string }>();
   const q = useQuery({ queryKey: ['public', slug], queryFn: () => api.publicRegistry(slug), retry: 1 });
   const t = useTheme(q.data?.theme);
+  const cats = useCategories();
   const [step, setStep] = useState<Step>('browse');
   const [goal, setGoal] = useState<Goal | null>(null);
   const [amountText, setAmountText] = useState('');
@@ -108,11 +109,11 @@ export default function PublicRegistryScreen() {
               <Card key={g.id} onPress={done ? undefined : () => { setGoal(g); setStep('amount'); }} accessibilityLabel={`Contribute to ${g.title}`}>
                 <Row>
                   <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: t.colors.accentBg, alignItems: 'center', justifyContent: 'center' }}>
-                    <Ionicons name={CATEGORY_ICON[g.category]} size={22} color={t.colors.accent} />
+                    <Ionicons name={categoryIcon(cats, g.category)} size={22} color={t.colors.accent} />
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text variant="heading">{g.title}</Text>
-                    <Text variant="caption" muted>{done ? 'Fully funded — thank you! 🎉' : `Goal ${formatINRCompact(g.target_paise)}`}</Text>
+                    <Text variant="caption" muted>{categoryLabel(cats, g.category, g.custom_category)} · {done ? 'Fully funded — thank you! 🎉' : `Goal ${formatINRCompact(g.target_paise)}`}</Text>
                   </View>
                   {!done ? <Ionicons name="chevron-forward" size={20} color={t.colors.textMuted} /> : null}
                 </Row>

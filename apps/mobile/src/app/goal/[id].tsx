@@ -5,7 +5,7 @@ import { Alert, Platform, Switch, View } from 'react-native';
 import { Banner, Button, Card, Chip, Field, Row, Screen, Text } from '@/design-system/components';
 import { useTheme } from '@/design-system/ThemeProvider';
 import type { Category } from '@/lib/api';
-import { CATEGORIES } from '@/lib/categories';
+import { useCategories } from '@/lib/categories';
 import { errorMessage, useDeleteGoal, useRegistry, useSaveGoal } from '@/lib/queries';
 
 export default function GoalEditor() {
@@ -18,7 +18,9 @@ export default function GoalEditor() {
   const del = useDeleteGoal();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const categories = useCategories();
   const [category, setCategory] = useState<Category>('honeymoon');
+  const [custom, setCustom] = useState('');
   const [target, setTarget] = useState('');
   const [isPrivate, setPrivate] = useState(false);
   const [paused, setPaused] = useState(false);
@@ -26,7 +28,7 @@ export default function GoalEditor() {
 
   useEffect(() => {
     if (goal) {
-      setTitle(goal.title); setDescription(goal.description); setCategory(goal.category);
+      setTitle(goal.title); setDescription(goal.description); setCategory(goal.category); setCustom(goal.custom_category ?? '');
       setTarget(String(goal.target_paise / 100)); setPrivate(goal.visibility === 'private'); setPaused(goal.status === 'paused');
     }
   }, [goal]);
@@ -38,9 +40,10 @@ export default function GoalEditor() {
     setErr(null);
     if (!title.trim()) { setErr('Give your goal a name.'); return; }
     if (!target || targetErr) { setErr('Set a target amount.'); return; }
+    if (category === 'other' && custom.trim() && custom.trim().length < 2) { setErr('Category name is too short.'); return; }
     save.mutate({
       id: isNew ? undefined : id,
-      body: { title: title.trim(), description: description.trim(), category, target_rupees: rupees, visibility: isPrivate ? 'private' : 'public',
+      body: { title: title.trim(), description: description.trim(), category, custom_category: category === 'other' ? custom.trim() || null : null, target_rupees: rupees, visibility: isPrivate ? 'private' : 'public',
         ...(isNew ? {} : { status: paused ? 'paused' : goal?.status === 'paused' ? 'active' : goal?.status }) },
     }, { onSuccess: () => router.back(), onError: (e) => setErr(errorMessage(e)) });
   };
@@ -60,7 +63,10 @@ export default function GoalEditor() {
         <Field label="What's the dream?" value={title} onChangeText={setTitle} placeholder="Honeymoon in Bali" maxLength={80} />
         <View style={{ gap: 6 }}>
           <Text variant="label">Category</Text>
-          <Row wrap gap={t.space.sm}>{CATEGORIES.map((c) => <Chip key={c.key} label={c.label} selected={category === c.key} onPress={() => setCategory(c.key)} />)}</Row>
+          <Row wrap gap={t.space.sm}>{categories.map((c) => <Chip key={c.key} label={c.label} selected={category === c.key} onPress={() => setCategory(c.key)} />)}</Row>
+          {category === 'other' ? (
+            <Field label="Your own category" value={custom} onChangeText={setCustom} maxLength={40} placeholder="e.g. Photography gear, Wedding shoot, Startup fund" />
+          ) : null}
         </View>
         <Field label="Target amount (₹)" value={target} onChangeText={setTarget} keyboardType="number-pad" placeholder="1,50,000" error={targetErr} />
         <Field label="Tell guests about it (optional)" value={description} onChangeText={setDescription} multiline maxLength={600}
