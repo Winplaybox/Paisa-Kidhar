@@ -12,12 +12,12 @@ Replace duplicate wedding gifts with contributions to meaningful goals chosen by
 
 ## Core MVP
 
-1. Google sign-in through Supabase Auth.
+1. Sign-in: email or auto-generated username + password, and Google (Supabase Auth).
 2. Couple onboarding and wedding profile.
 3. Registry and goal creation/editing/reordering/publishing.
 4. Public shareable registry with QR code.
 5. Guest contribution UX with custom INR amount and optional anonymous name/message.
-6. Simulated/test payment workflow; live payments gated by provider, compliance and policy approval.
+6. Gifts by direct UPI (deep link + QR) to the couple's UPI ID; couple confirms receipt. Optional Premium Registry (₹499 one-time) via Dodo Payments.
 7. Couple dashboard with totals, progress, recent activity and charts.
 8. Admin aggregate user-base reporting and audit trail.
 9. Privacy, account deletion request and user data controls.

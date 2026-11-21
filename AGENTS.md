@@ -14,9 +14,11 @@ The shared repository is the source of truth for common agent behavior. This fil
 
 - India-first wedding dream registry for couples and their guests.
 - Mobile-first experience; planned stack: React Native + Expo + TypeScript, Python FastAPI, Supabase.
-- Use fictional seed data and simulated payments in demos.
-- Live payment processing and production ads remain disabled until credentials, policy, legal/compliance and release reviews are complete.
-- Never reuse the separate wedding website database for this product.
+- Use fictional seed data in demos.
+- Guest gifts are direct UPI transfers (deep link/QR) to the couple; the platform never receives gift money. Dodo Payments is used ONLY for the Premium Registry digital product (owner decision 2026-11-21).
+- Auth: email or auto-generated username + password, and Google (owner decision 2026-11-21).
+- Data lives in the isolated `paisa` schema of the shared `winplayboxsite` Supabase project (owner decision 2026-11-21). Never touch other schemas. Never reuse the separate wedding website database.
+- Live Dodo mode and production ads stay disabled until keys, Play billing policy and release reviews are complete.
 - Inspect existing Supabase projects and Auth provider settings before any schema changes or project provisioning.
 - No schema changes or paid infrastructure without explicit approval.
 
