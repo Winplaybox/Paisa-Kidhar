@@ -6,7 +6,7 @@ import * as Crypto from 'expo-crypto';
 import { Head } from 'expo-router/head';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { BackHandler, Linking, Platform, ScrollView, Switch, View } from 'react-native';
+import { AppState, BackHandler, Linking, Platform, ScrollView, Switch, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -41,6 +41,9 @@ export default function PublicRegistryScreen() {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [launched, setLaunched] = useState(false); // user opened a UPI app
+  const [confirming, setConfirming] = useState(false); // "I've paid" double-check
+  const [status, setStatus] = useState<string>('pledged');
   const idem = useMemo(() => Crypto.randomUUID(), [goal?.id, amountText]); // new attempt → new key; retries reuse it
 
   useEffect(() => { if (q.data) api.track('public_view', { premium: q.data.premium }); }, [q.data]);
@@ -61,18 +64,34 @@ export default function PublicRegistryScreen() {
 
   const openUpi = async () => {
     if (!pledge) return;
-    try { await Linking.openURL(pledge.upi_link); }
+    try { await Linking.openURL(pledge.upi_link); setLaunched(true); }
     catch { setErr('No UPI app found. Copy the UPI ID below and pay from any UPI app.'); }
   };
 
   const markPaid = async () => {
     if (!pledge) return;
     setBusy(true); setErr(null);
-    try { await api.markPaid(pledge.reference, pledge.token); api.track('pledge_marked_paid'); setStep('done'); }
+    try { await api.markPaid(pledge.reference, pledge.token); api.track('pledge_marked_paid'); setStatus('guest_marked_paid'); setConfirming(false); setStep('done'); }
     catch (e) { setErr(errorMessage(e)); } finally { setBusy(false); }
   };
 
-  const reset = () => { setStep('browse'); setGoal(null); setAmountText(''); setPledge(null); setErr(null); q.refetch(); };
+  const reset = () => { setLaunched(false); setConfirming(false); setStatus('pledged'); setStep('browse'); setGoal(null); setAmountText(''); setPledge(null); setErr(null); q.refetch(); };
+
+  // Coming back from the UPI app: bring the confirm question forward (we cannot see the bank result ourselves).
+  useEffect(() => {
+    if (!launched || step !== 'pay') return;
+    const sub = AppState.addEventListener('change', (st) => { if (st === 'active') setConfirming(true); });
+    return () => sub.remove();
+  }, [launched, step]);
+
+  // After "I've paid": watch for the couple's confirmation.
+  useEffect(() => {
+    if (step !== 'done' || !pledge || status === 'confirmed' || status === 'rejected') return;
+    const id = setInterval(async () => {
+      try { const s = await api.pledgeStatus(pledge.reference, pledge.token); setStatus(s.status); } catch { /* keep trying */ }
+    }, 8000);
+    return () => clearInterval(id);
+  }, [step, pledge, status]);
 
   // Android hardware back walks the gift steps backwards before leaving the page.
   useEffect(() => {
@@ -193,18 +212,29 @@ export default function PublicRegistryScreen() {
             </Row>
             <Text variant="caption" muted style={{ textAlign: 'center' }}>Add this reference in the payment note: <Text variant="label" selectable>{pledge.reference}</Text></Text>
           </Card>
-          <Button title="I've paid" kind="primary" icon="checkmark-circle-outline" loading={busy} onPress={markPaid} />
+          <PayProgress t={t} active={confirming ? 2 : 1} />
+          {confirming ? (
+            <Card tone="alt" style={{ gap: t.space.md }}>
+              <Text variant="heading">Did {formatINR(pledge.amount_paise)} leave your account?</Text>
+              <Text muted variant="caption">Tap “Yes” only after your UPI app shows a Success screen. If it failed or you backed out, choose “Not yet”.</Text>
+              <Button title="Yes, payment successful" kind="primary" icon="checkmark-circle-outline" loading={busy} onPress={markPaid} />
+              <Button title="Not yet" kind="secondary" onPress={() => setConfirming(false)} />
+            </Card>
+          ) : (
+            <Button title="I've paid" kind="primary" icon="checkmark-circle-outline" disabled={busy} onPress={() => setConfirming(true)} />
+          )}
           <Button title="Cancel" kind="ghost" onPress={reset} />
           <Text variant="caption" muted style={{ textAlign: 'center' }}>The couple confirms gifts from their UPI app. Your gift shows on their goal once confirmed.</Text>
         </>
       ) : null}
 
-      <ConfettiBurst show={step === 'done'} />
+      <ConfettiBurst show={step === 'done' || status === 'confirmed'} />
       {step === 'done' && pledge ? (
         <View style={{ alignItems: 'center', gap: t.space.lg, paddingVertical: t.space.xxl }}>
           <Anim name="heart" size={160} />
           <Text variant="title" style={{ textAlign: 'center' }}>Thank you!</Text>
           <Text muted style={{ textAlign: 'center' }}>{couple} will see your {formatINR(pledge.amount_paise)} gift towards “{pledge.goal_title}” once it reaches their UPI.</Text>
+          <PayProgress t={t} active={status === 'confirmed' ? 4 : 3} />
           <Card tone="alt"><Text variant="caption" muted>Reference</Text><Text variant="heading" selectable>{pledge.reference}</Text></Card>
           <ShagunCardUpsell pledge={pledge} partnerOne={r.partner_one} partnerTwo={r.partner_two} guestName={anon ? undefined : name.trim() || undefined}
             message={message.trim() || undefined} weddingDate={r.wedding_date} />
@@ -228,5 +258,25 @@ function Wrap({ t, children }: { t: ReturnType<typeof useTheme>; children: React
         {children}
       </ScrollView>
     </SafeAreaView>
+  );
+}
+
+const STEPS = ['Gift created', 'Pay in your UPI app', 'You confirm', 'Couple confirms'];
+function PayProgress({ t, active }: { t: ReturnType<typeof useTheme>; active: number }) {
+  // active = index of the step in progress; steps before it are done; active>=4 means everything is done.
+  return (
+    <Card style={{ gap: t.space.sm }} accessibilityLabel={`Progress: ${STEPS[Math.min(active, 3)]}`}>
+      {STEPS.map((label, i) => {
+        const done = i < active || (i === 0);
+        const cur = i === active;
+        return (
+          <Row key={label} gap={t.space.sm}>
+            <Ionicons name={done ? 'checkmark-circle' : cur ? 'time-outline' : 'ellipse-outline'} size={20}
+              color={done ? t.colors.accent : cur ? t.colors.text : t.colors.textMuted} />
+            <Text variant={cur ? 'label' : 'caption'} muted={!done && !cur}>{label}{cur && i === 3 ? ' — usually within a day' : ''}</Text>
+          </Row>
+        );
+      })}
+    </Card>
   );
 }

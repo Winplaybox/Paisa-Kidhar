@@ -118,6 +118,9 @@ export const api = {
   markPaid: (reference: string, token: string) =>
     request<{ status: ContributionStatus }>(`/v1/public/pledges/${reference}/mark-paid`, { method: 'POST', body: { token }, auth: false }),
 
+  pledgeStatus: (reference: string, token: string) =>
+    request<{ status: ContributionStatus }>(`/v1/public/pledges/${reference}?token=${encodeURIComponent(token)}`, { auth: false }),
+
   categories: () => request<{ categories: CategoryInfo[] }>('/v1/public/categories', { auth: false }),
   plans: () => request<Plans>('/v1/billing/plans', { auth: false }),
   cardCheckout: (reference: string, token: string, email: string, design: CardDesign) =>

@@ -58,6 +58,7 @@ const config: ExpoConfig = {
   android: {
     package: 'com.winplaybox.paisakidhar',
     versionCode: 1,
+    googleServicesFile: './google-services.json',
     adaptiveIcon: {
       backgroundColor: '#FFFCF7',
       foregroundImage: './assets/android-icon-foreground.png',
