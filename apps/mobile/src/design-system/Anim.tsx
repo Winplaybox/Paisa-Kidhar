@@ -9,6 +9,14 @@ const SOURCES = {
   heart: require('../../assets/lottie/heart-burst.json'),
   confetti: require('../../assets/lottie/confetti.json'),
   gift: require('../../assets/lottie/gift.json'),
+  petals: require('../../assets/lottie/petals-fall.json'),
+  sparkles: require('../../assets/lottie/gold-sparkles.json'),
+  diya: require('../../assets/lottie/diya-light.json'),
+  balloons: require('../../assets/lottie/balloon-float.json'),
+  fireworks: require('../../assets/lottie/fireworks.json'),
+  hearts: require('../../assets/lottie/hearts-float.json'),
+  toDark: require('../../assets/lottie/theme-to-dark.json'),
+  toLight: require('../../assets/lottie/theme-to-light.json'),
 } as const;
 
 export type AnimName = keyof typeof SOURCES;
@@ -23,8 +31,8 @@ function useReducedMotion() {
   return reduced;
 }
 
-export function Anim({ name, size = 140, width, height, cover, loop = false, style, onFinish }: {
-  name: AnimName; size?: number; width?: number; height?: number; cover?: boolean; loop?: boolean; style?: ViewStyle; onFinish?: () => void;
+export function Anim({ name, size = 140, width, height, cover, loop = false, still = false, style, onFinish }: {
+  name: AnimName; size?: number; width?: number; height?: number; cover?: boolean; loop?: boolean; still?: boolean; style?: ViewStyle; onFinish?: () => void;
 }) {
   const reduced = useReducedMotion();
   const w = width ?? size;
@@ -33,9 +41,9 @@ export function Anim({ name, size = 140, width, height, cover, loop = false, sty
     <View style={[{ width: w, height: h }, style]} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" pointerEvents="none">
       <LottieView
         source={SOURCES[name]}
-        autoPlay={!reduced}
+        autoPlay={!reduced && !still}
         loop={loop && !reduced}
-        progress={reduced ? 1 : undefined}
+        progress={reduced || still ? 1 : undefined}
         resizeMode={cover ? 'cover' : 'contain'}
         style={{ width: w, height: h }}
         webStyle={{ width: w, height: h, objectFit: cover ? 'cover' : 'contain' } as object}

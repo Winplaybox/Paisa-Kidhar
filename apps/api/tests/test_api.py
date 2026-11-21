@@ -324,7 +324,7 @@ async def test_shagun_card_checkout_and_webhook(client, make_user, upstream):
     again = await client.post(f"/v1/public/pledges/{p['reference']}/card-checkout", json={"token": p["token"], "email": "nani@example.com"})
     assert again.status_code == 409
     items = (await client.get(f"/v1/registries/{reg['id']}/contributions", headers=u["h"])).json()["items"]
-    assert items[0]["card"] is True and items[0]["status"] == "pledged"
+    assert items[0]["card"] is True and items[0]["status"] == "pledged" and items[0]["card_id"] == card_id
     # premium is not granted by a card payment
     assert (await client.get(f"/v1/registries/{reg['id']}", headers=u["h"])).json()["plan"] == "free"
     assert (await client.get("/v1/public/cards/not-a-uuid")).status_code == 404
@@ -358,3 +358,46 @@ async def test_app_check_rejects_garbage_token_but_monitor_mode_allows(client, s
     # default mode is "monitor": an Android request without a valid token is logged, not blocked
     r = await client.get("/v1/public/categories", headers={"x-client-platform": "android", "x-firebase-appcheck": "bad"})
     assert r.status_code == 200
+
+
+async def test_shagun_card_personalisation_and_edit(client, make_user, upstream):
+    u = await make_user()
+    reg = await _registry(client, u)
+    goal = await _goal(client, u, reg["id"])
+    await client.post(f"/v1/registries/{reg['id']}/publish", headers=u["h"])
+    p = (await client.post(f"/v1/public/registries/{reg['slug']}/pledges", json={"goal_id": goal["id"], "amount_paise": 50000, "guest_name": "Mausi", "is_anonymous": True},
+                           headers={"idempotency-key": uuid.uuid4().hex})).json()
+    url = f"/v1/public/pledges/{p['reference']}/card-checkout"
+    base = {"token": p["token"], "email": "m@example.com"}
+    # catalogue choices are validated
+    for bad in ({"template": "nope"}, {"occasion": "funeral"}, {"lang": "xx"}, {"palette": 9}):
+        assert (await client.post(url, json={**base, **bad})).status_code == 422
+    r = await client.post(url, json={**base, "template": "diwali", "occasion": "festival", "palette": 2, "lang": "hi",
+                                     "recipient": "  Sharma   Family \u202e", "sender": "Mausi & Mausa", "blessing": "Shubh  Deepavali\n\n\nHappy"})
+    assert r.status_code == 200, r.text
+    card_id, key = r.json()["card_id"], r.json()["edit_key"]
+    assert len(key) == 64
+    pay = {"payment_id": "pay_card_2", "status": "succeeded", "total_amount": 4900, "currency": "INR",
+           "metadata": {"app": "paisa_kidhar", "kind": "shagun_card", "order_id": card_id}}
+    upstream.payments["pay_card_2"] = pay
+    event = json.dumps({"type": "payment.succeeded", "data": pay}).encode()
+    ts = int(time.time())
+    h = {"webhook-id": "evt_card2", "webhook-timestamp": str(ts), "webhook-signature": _sign(event, "evt_card2", ts)}
+    assert (await client.post("/v1/webhooks/dodo", content=event, headers=h)).json() == {"ok": True}
+    card = (await client.get(f"/v1/public/cards/{card_id}")).json()
+    assert card["design"] == "diwali" and card["occasion"] == "festival" and card["palette"] == 2 and card["lang"] == "hi"
+    assert card["recipient"] == "Sharma Family" and card["from"] == "Mausi & Mausa" and card["message"] == "Shubh Deepavali\nHappy"
+    # only the holder of the edit key can re-style; one payment unlocks every design
+    assert (await client.patch(f"/v1/public/cards/{card_id}", json={"edit_key": "0" * 64, "template": "royal"})).status_code == 404
+    e = await client.patch(f"/v1/public/cards/{card_id}", json={"edit_key": key, "template": "royal", "occasion": "wedding", "palette": 1, "lang": "gu", "blessing": None})
+    assert e.status_code == 200, e.text
+    out = e.json()
+    assert out["design"] == "royal" and out["occasion"] == "wedding" and out["palette"] == 1 and out["lang"] == "gu" and out["message"] is None
+    assert (await client.patch(f"/v1/public/cards/{card_id}", json={"edit_key": key, "template": "bogus"})).status_code == 422
+    assert (await client.patch("/v1/public/cards/not-a-uuid", json={"edit_key": key})).status_code == 404
+    # an unpaid card cannot be edited
+    p2 = (await client.post(f"/v1/public/registries/{reg['slug']}/pledges", json={"goal_id": goal["id"], "amount_paise": 50000},
+                            headers={"idempotency-key": uuid.uuid4().hex})).json()
+    r2 = await client.post(f"/v1/public/pledges/{p2['reference']}/card-checkout", json={"token": p2["token"], "email": "z@example.com"})
+    assert r2.status_code == 200
+    assert (await client.patch(f"/v1/public/cards/{r2.json()['card_id']}", json={"edit_key": r2.json()["edit_key"], "template": "royal"})).status_code == 409

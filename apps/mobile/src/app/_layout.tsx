@@ -44,6 +44,7 @@ function Shell() {
         <Stack.Screen name="(app)" options={{ headerShown: false }} />
         <Stack.Screen name="r/[slug]" options={{ headerShown: false }} />
         <Stack.Screen name="card/[id]" options={{ headerShown: false }} />
+        <Stack.Screen name="card/new" options={{ headerShown: false }} />
         <Stack.Screen name="registry/setup" options={{ title: 'Your registry', presentation: MODAL }} />
         <Stack.Screen name="goal/[id]" options={{ title: 'Goal', presentation: MODAL }} />
         <Stack.Screen name="premium" options={{ title: 'Premium', presentation: MODAL }} />

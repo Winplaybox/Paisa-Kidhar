@@ -78,7 +78,7 @@ const config: ExpoConfig = {
       {
         action: 'VIEW',
         autoVerify: true,
-        data: [{ scheme: 'https', host: webHost, pathPrefix: '/r/' }],
+        data: [{ scheme: 'https', host: webHost, pathPrefix: '/r/' }, { scheme: 'https', host: webHost, pathPrefix: '/card/' }],
         category: ['BROWSABLE', 'DEFAULT'],
       },
     ],

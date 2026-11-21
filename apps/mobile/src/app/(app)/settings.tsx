@@ -5,6 +5,7 @@ import Constants from 'expo-constants';
 
 import { Banner, Button, Card, Chip, Divider, Field, Row, Screen, Text } from '@/design-system/components';
 import { useThemeCtx } from '@/design-system/ThemeProvider';
+import { ThemeToggle } from '@/design-system/ThemeToggle';
 import { LANGUAGES, useI18n } from '@/i18n';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
@@ -56,6 +57,7 @@ export default function Settings() {
 
       <Card>
         <Text variant="heading">{tx('st_appearance')}</Text>
+        <ThemeToggle label={tx('th_toggle')} hint={tx('th_toggle_hint')} />
         <Row gap={t.space.sm} wrap>
           {(['system', 'light', 'dark'] as const).map((p) => <Chip key={p} label={tx('th_' + p)} selected={pref === p} onPress={(e) => setPref(p, e ? { x: e.nativeEvent.pageX, y: e.nativeEvent.pageY } : undefined)} />)}
         </Row>

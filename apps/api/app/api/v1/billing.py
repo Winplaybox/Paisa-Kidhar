@@ -16,6 +16,7 @@ from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
+from ... import domain
 from ...core.errors import AppError, NotFound
 from ...core.security import Identity, current_identity, rate_limit
 from ...core.settings import Settings
@@ -41,7 +42,8 @@ async def plans(cfg: Settings = Depends(settings)):
         "features": ["Up to 50 goals", "5 premium themes", "No ads for you or your guests", "Custom registry link",
                      "Full insights + CSV export"]}],
         "shagun_card": {"enabled": cfg.payments_enabled and bool(cfg.dodo_shagun_card_product_id),
-                        "price_paise": cfg.shagun_card_price_paise, "designs": ["marigold", "rose", "royal", "mehendi"]}}
+                        "price_paise": cfg.shagun_card_price_paise, "designs": list(domain.CARD_TEMPLATES),
+                        "occasions": list(domain.CARD_OCCASIONS), "languages": list(domain.CARD_LANGS)}}
 
 
 @router.post("/billing/checkout", dependencies=[rate_limit("checkout", 10, 600)])

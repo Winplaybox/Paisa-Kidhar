@@ -125,3 +125,13 @@ def pledge_token(reference: str, settings: Settings | None = None) -> str:
 
 def verify_pledge_token(reference: str, token: str, settings: Settings | None = None) -> bool:
     return hmac.compare_digest(pledge_token(reference, settings), token or "")
+
+
+def card_edit_key(card_id: str, settings: Settings | None = None) -> str:
+    """Capability key handed only to the buyer at checkout; lets them re-style their paid card without paying again."""
+    s = settings or get_settings()
+    return hmac.new(s.pledge_token_secret.encode(), f"cardedit:{card_id}".encode(), hashlib.sha256).hexdigest()
+
+
+def verify_card_edit_key(card_id: str, key: str, settings: Settings | None = None) -> bool:
+    return hmac.compare_digest(card_edit_key(card_id, settings), key or "")

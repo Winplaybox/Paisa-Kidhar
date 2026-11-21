@@ -1,4 +1,5 @@
 import { File, Paths } from 'expo-file-system';
+import { router } from 'expo-router';
 import * as Sharing from 'expo-sharing';
 import { useState } from 'react';
 import { Alert, Platform, View } from 'react-native';
@@ -90,7 +91,7 @@ export default function Gifts() {
             </Row>
             <Text variant="label">{c.is_anonymous ? `${tx('gf_anon')}${c.guest_name ? ` (${c.guest_name})` : ''}` : c.guest_name || tx('gf_guest')}</Text>
             {c.guest_message ? <Text muted>“{c.guest_message}”</Text> : null}
-            {c.card ? <Text variant="label" color={t.colors.highlight}>{tx('gf_card')}</Text> : null}
+            {c.card ? <Row gap={t.space.sm}><Text variant="label" color={t.colors.highlight}>{tx('gf_card')}</Text>{c.card_id ? <Button title={tx('gf_view_card')} kind="ghost" full={false} onPress={() => router.push(`/card/${c.card_id}`)} style={{ minHeight: 36, paddingHorizontal: 8 }} /> : null}</Row> : null}
             {c.status === 'pledged' || c.status === 'guest_marked_paid' ? (
               <Row gap={t.space.sm}>
                 <Button title={tx('gf_recv')} kind="accent" icon="checkmark" style={{ flex: 1 }} onPress={() => act(c, 'confirmed')} loading={decide.isPending && decide.variables?.id === c.id} />
