@@ -3,6 +3,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { Pressable } from 'react-native';
 
+import { useI18n } from '@/i18n';
 import { useTheme } from './ThemeProvider';
 
 export function goBackOr(fallback: string) {
@@ -12,8 +13,9 @@ export function goBackOr(fallback: string) {
 
 export function BackButton({ fallback = '/', color }: { fallback?: string; color?: string }) {
   const t = useTheme();
+  const { t: tx } = useI18n();
   return (
-    <Pressable onPress={() => goBackOr(fallback)} accessibilityRole="button" accessibilityLabel="Go back" hitSlop={12}
+    <Pressable onPress={() => goBackOr(fallback)} accessibilityRole="button" accessibilityLabel={tx('cm_back')} hitSlop={12}
       style={({ pressed }) => ({
         width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', marginLeft: -6,
         backgroundColor: pressed ? t.colors.bgAlt : 'transparent',

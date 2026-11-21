@@ -81,7 +81,7 @@ export default function CardPage() {
               <Row gap={t.space.sm} wrap style={{ justifyContent: 'center' }}>
                 <Button title={copied ? tx('cd_copied') : tx('cd_copy')} kind="secondary" icon="link-outline" full={false}
                   onPress={async () => { await Clipboard.setStringAsync(url); setCopied(true); }} />
-                <Button title="⋯" kind="ghost" full={false} onPress={() => shareLink(shareText, url)} accessibilityHint="More sharing options" />
+                <Button title="⋯" kind="ghost" full={false} onPress={() => shareLink(shareText, url)} accessibilityHint={tx('cd_more_share')} />
               </Row>
               {canEdit ? <Button title={tx('cd_edit')} kind="primary" icon="color-palette-outline" full={false} onPress={() => router.push(`/card/new?edit=${id}`)} /> : null}
               {c?.slug ? <Button title={tx('cd_see_registry')} kind="ghost" full={false} onPress={() => router.push(`/r/${c.slug}`)} /> : null}

@@ -1,5 +1,6 @@
 import { QueryClient, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
+import { t as tr } from '@/i18n';
 import { api, ApiError, type ContributionStatus, type Goal, type GoalInput, type RegistryInput } from './api';
 
 export const queryClient = new QueryClient({
@@ -52,6 +53,12 @@ export function useDecide() {
   return useMutation({ mutationFn: ({ id, decision }: { id: string; decision: 'confirmed' | 'rejected' }) => api.decide(id, decision), onSuccess: inv });
 }
 
+/** User-facing text for any error. Known API codes are shown in the app language; unknown ones fall back to the server's message. */
 export function errorMessage(e: unknown) {
-  return e instanceof ApiError ? e.message : e instanceof Error ? e.message : 'Something went wrong.';
+  if (e instanceof ApiError) {
+    const key = `err_${e.code}`;
+    const local = tr(key);
+    return local !== key ? local : e.message;
+  }
+  return e instanceof Error ? e.message : tr('cm_error');
 }

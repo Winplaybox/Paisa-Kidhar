@@ -1,6 +1,9 @@
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Alert, Linking, Platform } from 'react-native';
+
+import { shareApp } from '@/lib/appShare';
+import { checkStore, fetchOta, startStoreUpdate } from '@/lib/updates';
 import Constants from 'expo-constants';
 
 import { Banner, Button, Card, Chip, Divider, Field, Row, Screen, Text } from '@/design-system/components';
@@ -43,6 +46,16 @@ export default function Settings() {
       [{ text: tx('common_cancel'), style: 'cancel' }, { text: tx('common_delete'), style: 'destructive', onPress: run }]);
   };
 
+  const checkUpdates = async () => {
+    if (Platform.OS !== 'android') { setMsg({ tone: 'positive', text: tx('up_latest') }); return; }
+    setMsg({ tone: 'positive', text: tx('up_checking') });
+    const store = await checkStore(true);
+    if (store.kind === 'store') { if (!(await startStoreUpdate(store.immediate))) Linking.openURL(config.playUrl).catch(() => {}); return; }
+    if (await fetchOta()) { setMsg({ tone: 'positive', text: tx('up_ota_body') }); return; }
+    setMsg({ tone: 'positive', text: tx('up_latest') });
+  };
+  const share = async () => { if ((await shareApp()) === 'copied') setMsg({ tone: 'positive', text: tx('share_copied') }); };
+
   return (
     <Screen edges={['top']}>
       <Text variant="title">{tx('st_title')}</Text>
@@ -68,6 +81,13 @@ export default function Settings() {
         <Row gap={t.space.sm} wrap>
           {LANGUAGES.map((l) => <Chip key={l.code} label={l.native} selected={lang === l.code} onPress={() => setLang(l.code)} />)}
         </Row>
+      </Card>
+
+      <Card>
+        <Text variant="heading">{tx('st_about')}</Text>
+        <Button title={tx('st_rate')} kind="ghost" icon="star-outline" full={false} onPress={() => router.push('/feedback')} />
+        <Button title={tx('st_share')} kind="ghost" icon="share-social-outline" full={false} onPress={share} />
+        <Button title={tx('st_check_updates')} kind="ghost" icon="refresh-outline" full={false} onPress={checkUpdates} />
       </Card>
 
       <Card>

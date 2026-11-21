@@ -45,6 +45,15 @@ class CardCheckoutIn(CardStyle):
     email: str = Field(min_length=5, max_length=254, pattern=r"^[^\s@]+@[^\s@]+\.[^\s@]{2,}$")
 
 
+class FeedbackIn(BaseModel):
+    rating: int = Field(ge=1, le=5)
+    message: str | None = Field(default=None, max_length=1000)
+    email: str | None = Field(default=None, max_length=254, pattern=r"^[^\s@]+@[^\s@]+\.[^\s@]{2,}$")
+    app_version: str | None = Field(default=None, max_length=20)
+    platform: str | None = Field(default=None, pattern=r"^(android|ios|web)$")
+    lang: str | None = Field(default=None, pattern=r"^(en|hi|gu|mr)$")
+
+
 class CardEditIn(CardStyle):
     edit_key: str = Field(min_length=64, max_length=64)
 
@@ -278,3 +287,13 @@ async def edit_card(card_id: str, body: CardEditIn, db=Depends(pool), cfg=Depend
             await conn.execute(f"update paisa.card_orders set {sets}, edit_count=edit_count+1 where id=$1::uuid", card_id, *changes.values())
         out = await conn.fetchrow(_CARD_SELECT, card_id)
     return _card_out(out)
+
+
+@router.post("/feedback", status_code=201, dependencies=[rate_limit("feedback", 5, 3600)])
+async def send_feedback(body: FeedbackIn, db=Depends(pool)):
+    """Rating + optional note from the app's Settings screen. No login needed so a locked-out user can still reach us."""
+    message = domain.clean_text(body.message, 1000) if body.message else None
+    await db.execute(
+        "insert into paisa.app_feedback (rating, message, email, app_version, platform, lang) values ($1,$2,$3,$4,$5,$6)",
+        body.rating, message or None, body.email, body.app_version, body.platform, body.lang)
+    return {"ok": True}

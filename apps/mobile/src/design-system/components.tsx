@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { useI18n } from '@/i18n';
 import { Anim } from './Anim';
 import { useTheme } from './ThemeProvider';
 import type { Theme } from './theme';
@@ -236,8 +237,9 @@ export function Skeleton({ height = 20, width = '100%', radius }: { height?: num
 
 export function LoadingList({ rows = 3 }: { rows?: number }) {
   const t = useTheme();
+  const { t: tx } = useI18n();
   return (
-    <View style={{ gap: t.space.md }} accessibilityLabel="Loading">
+    <View style={{ gap: t.space.md }} accessibilityLabel={tx('cm_loading')}>
       {Array.from({ length: rows }).map((_, i) => (
         <Card key={i}><Skeleton width="60%" /><Skeleton height={12} /><Skeleton height={10} width="40%" /></Card>
       ))}
@@ -246,9 +248,10 @@ export function LoadingList({ rows = 3 }: { rows?: number }) {
 }
 
 export function ErrorState({ message, onRetry }: { message: string; onRetry?: () => void }) {
+  const { t: tx } = useI18n();
   return (
-    <EmptyState icon="cloud-offline-outline" title="Couldn't load this" body={message}
-      action={onRetry ? <Button title="Try again" kind="secondary" full={false} icon="refresh" onPress={onRetry} /> : undefined} />
+    <EmptyState icon="cloud-offline-outline" title={tx('cm_cant_load')} body={message}
+      action={onRetry ? <Button title={tx('cm_try_again')} kind="secondary" full={false} icon="refresh" onPress={onRetry} /> : undefined} />
   );
 }
 

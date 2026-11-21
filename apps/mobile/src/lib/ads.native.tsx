@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { AppState, View } from 'react-native';
 import mobileAds, { AdEventType, AdsConsent, AppOpenAd, BannerAd, BannerAdSize, InterstitialAd, TestIds } from 'react-native-google-mobile-ads';
 
+import { t as tr } from '@/i18n';
 import { config } from './config';
 
 let initPromise: Promise<boolean> | null = null;
@@ -33,7 +34,7 @@ export function AdBanner({ hidden }: { hidden?: boolean }) {
   useEffect(() => { if (config.adsEnabled && !hidden) init().then(setOk); }, [hidden]);
   if (!config.adsEnabled || hidden || !ok) return null;
   return (
-    <View style={{ alignItems: 'center', marginTop: 8 }} accessibilityLabel="Advertisement">
+    <View style={{ alignItems: 'center', marginTop: 8 }} accessibilityLabel={tr('cm_ad')}>
       <BannerAd unitId={unit(config.admob.banner, TestIds.ADAPTIVE_BANNER)} size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER} requestOptions={REQ} />
     </View>
   );

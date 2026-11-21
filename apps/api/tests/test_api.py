@@ -401,3 +401,11 @@ async def test_shagun_card_personalisation_and_edit(client, make_user, upstream)
     r2 = await client.post(f"/v1/public/pledges/{p2['reference']}/card-checkout", json={"token": p2["token"], "email": "z@example.com"})
     assert r2.status_code == 200
     assert (await client.patch(f"/v1/public/cards/{r2.json()['card_id']}", json={"edit_key": r2.json()["edit_key"], "template": "royal"})).status_code == 409
+
+
+async def test_app_feedback(client):
+    r = await client.post("/v1/public/feedback", json={"rating": 5, "message": "  Love   it ‮!", "app_version": "1.0.0", "platform": "android", "lang": "hi"})
+    assert r.status_code == 201 and r.json() == {"ok": True}
+    assert (await client.post("/v1/public/feedback", json={"rating": 0})).status_code == 422
+    assert (await client.post("/v1/public/feedback", json={"rating": 4, "platform": "tv"})).status_code == 422
+    assert (await client.post("/v1/public/feedback", json={"rating": 4, "email": "nope"})).status_code == 422

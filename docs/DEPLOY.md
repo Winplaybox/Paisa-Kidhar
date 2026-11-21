@@ -91,3 +91,16 @@ Then: copy the Play app-signing SHA-256 into `apps/mobile/public/.well-known/ass
 - App: Play Console → halt staged rollout; ship the previous AAB with a higher versionCode.
 - DB: migrations are additive. To remove Paisa Kidhar entirely: `drop schema paisa cascade; drop role paisa_api;` (destroys all Paisa data — owner approval required).
 - Backups: Supabase free tier has no PITR; run `pg_dump --schema=paisa` weekly (GitHub Action with a secret DSN) if you need restorable backups.
+
+## Updates after release (OTA + Play in-app update)
+
+- **OTA (expo-updates)** — JS/asset-only fixes reach installed apps of the *same version* with no Play review:
+  `cd apps/mobile && npx eas update --channel production --message "<what changed>"`.
+  Builds made with the `production` profile listen on the `production` channel (see eas.json). Anything that changes native code,
+  permissions, app.config plugins or the SDK needs a new AAB instead. The app downloads the bundle silently and shows a localized
+  "Restart now / Later" dialog (`src/components/UpdateGate.tsx`).
+- **Play in-app update** — after publishing a new versionCode, the app shows a localized "Update available" dialog and Google's
+  download UI. In Play Console → Release → *Update priority* (set when creating the release): **0–3 = dismissible prompt,
+  4–5 = blocking immediate update** (use 5 when an old build would break against the API). Works only for Play-installed builds.
+- Settings → *Check for updates* runs both checks on demand. Rate/feedback (`/feedback`) posts to `POST /v1/public/feedback`
+  (table `paisa.app_feedback`, read it in the Supabase dashboard).
