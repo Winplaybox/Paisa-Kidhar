@@ -64,7 +64,7 @@ In the app (Android or paisa.winplaybox.in):
 Can't sign in or uninstalled the app? Email support@winplaybox.in from the email address on your account with the subject "Delete my Paisa Kidhar account". We verify ownership and process the request within 30 days.
 
 What is deleted
-• Your profile (name, username, email), registries, goals, story, photos and theme settings
+• Your profile (name, username, email), registries, goals, story and theme settings
 • Gift records and guest messages on your registries
 • Analytics events linked to your account
 
