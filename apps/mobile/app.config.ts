@@ -31,7 +31,7 @@ const plugins: ExpoConfig['plugins'] = [
     },
   ],
   'expo-sharing',
-  ['expo-build-properties', { android: { minSdkVersion: 24, compileSdkVersion: 36, targetSdkVersion: 36, enableProguardInReleaseBuilds: true, enableShrinkResourcesInReleaseBuilds: true } }],
+  ['expo-build-properties', { android: { minSdkVersion: 24, compileSdkVersion: 37, targetSdkVersion: 36, enableProguardInReleaseBuilds: true, enableShrinkResourcesInReleaseBuilds: true } }],
   [
     'react-native-google-mobile-ads',
     {
