@@ -57,6 +57,8 @@ const config: ExpoConfig = {
   icon: './assets/icon.png',
   userInterfaceStyle: 'automatic',
   runtimeVersion: { policy: 'appVersion' },
+  // OTA: JS/asset fixes reach installed apps of the same version without a Play review (eas update --channel production).
+  updates: { url: 'https://u.expo.dev/c4f42188-ff47-47f9-a9b2-7b4a9b23f49d', fallbackToCacheTimeout: 0, checkAutomatically: 'ON_ERROR_RECOVERY' },
   ios: { supportsTablet: true, bundleIdentifier: 'com.winplaybox.paisakidhar' },
   android: {
     package: 'com.winplaybox.paisakidhar',

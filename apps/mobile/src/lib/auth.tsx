@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Platform } from 'react-native';
 
+import { t as tr } from '@/i18n';
 import { api, type Profile } from './api';
 import { config } from './config';
 import { signInWithGoogle, signOutGoogle } from './google';
@@ -78,8 +79,8 @@ export function useAuth() {
 
 export function friendlyAuthError(e: unknown): string {
   const msg = e instanceof Error ? e.message : String(e);
-  if (/already registered|already been registered/i.test(msg)) return 'An account with this email already exists. Try signing in.';
-  if (/password should|weak/i.test(msg)) return 'Choose a stronger password: 8+ characters with uppercase, lowercase, a number and a symbol.';
-  if (/rate limit|too many/i.test(msg)) return 'Too many attempts. Please wait a minute and try again.';
-  return msg || 'Something went wrong. Please try again.';
+  if (/already registered|already been registered/i.test(msg)) return tr('auth_exists');
+  if (/password should|weak/i.test(msg)) return tr('auth_weak');
+  if (/rate limit|too many/i.test(msg)) return tr('auth_rate');
+  return msg || tr('cm_error');
 }

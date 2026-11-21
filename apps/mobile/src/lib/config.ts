@@ -20,4 +20,6 @@ export const config = {
   // Play policy: only enable after enrolling in Google Play user-choice/alternative billing for India.
   androidExternalBilling: process.env.EXPO_PUBLIC_ANDROID_EXTERNAL_BILLING === 'true',
   supportEmail: 'support@winplaybox.in',
+  playPackage: 'com.winplaybox.paisakidhar',
+  playUrl: 'https://play.google.com/store/apps/details?id=com.winplaybox.paisakidhar',
 };

@@ -55,7 +55,7 @@ export default function Home() {
         ) : null}
 
         {k && k.pending_count > 0 ? (
-          <Card tone="accent" onPress={() => router.push('/gifts')} accessibilityLabel="Review gifts to confirm">
+          <Card tone="accent" onPress={() => router.push('/gifts')} accessibilityLabel={tx('hm_review_gifts')}>
             <Text variant="label" color={t.colors.accent}>{tx('hm_pending', { n: k.pending_count, amt: formatINR(k.pending_paise) })}</Text>
             <Text variant="caption" muted>{tx('hm_pending_b')}</Text>
           </Card>
@@ -111,7 +111,7 @@ export default function Home() {
 
         {r.status === 'published' ? <ShareCard registry={r} /> : null}
         {r.plan !== 'premium' ? (
-          <Card onPress={() => router.push('/premium')} accessibilityLabel="Upgrade to Premium">
+          <Card onPress={() => router.push('/premium')} accessibilityLabel={tx('hm_upgrade')}>
             <Text variant="label" color={t.colors.highlight}>{tx('hm_prem_t')}</Text>
             <Text variant="caption" muted>{tx('hm_prem_b')}</Text>
           </Card>

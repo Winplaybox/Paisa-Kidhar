@@ -12,7 +12,8 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { BackButton } from '@/design-system/BackButton';
 import { ThemeProvider, useTheme } from '@/design-system/ThemeProvider';
 import { AuthProvider } from '@/lib/auth';
-import { initLanguage } from '@/i18n';
+import { UpdateGate } from '@/components/UpdateGate';
+import { initLanguage, useI18n } from '@/i18n';
 import { initFirebase } from '@/lib/firebase';
 import { queryClient } from '@/lib/queries';
 
@@ -23,6 +24,7 @@ const MODAL = Platform.OS === 'web' ? 'card' : 'modal';
 
 function Shell() {
   const t = useTheme();
+  const { t: tx } = useI18n();
   useEffect(() => { SystemUI.setBackgroundColorAsync(t.colors.bg).catch(() => {}); }, [t.colors.bg]);
   return (
     <>
@@ -45,14 +47,16 @@ function Shell() {
         <Stack.Screen name="r/[slug]" options={{ headerShown: false }} />
         <Stack.Screen name="card/[id]" options={{ headerShown: false }} />
         <Stack.Screen name="card/new" options={{ headerShown: false }} />
-        <Stack.Screen name="registry/setup" options={{ title: 'Your registry', presentation: MODAL }} />
-        <Stack.Screen name="goal/[id]" options={{ title: 'Goal', presentation: MODAL }} />
-        <Stack.Screen name="premium" options={{ title: 'Premium', presentation: MODAL }} />
-        <Stack.Screen name="billing/return" options={{ title: 'Payment' }} />
-        <Stack.Screen name="admin" options={{ title: 'Admin' }} />
+        <Stack.Screen name="registry/setup" options={{ title: tx('nav_registry'), presentation: MODAL }} />
+        <Stack.Screen name="goal/[id]" options={{ title: tx('nav_goal'), presentation: MODAL }} />
+        <Stack.Screen name="premium" options={{ title: tx('nav_premium'), presentation: MODAL }} />
+        <Stack.Screen name="billing/return" options={{ title: tx('nav_payment') }} />
+        <Stack.Screen name="feedback" options={{ title: tx('nav_feedback'), presentation: MODAL }} />
+        <Stack.Screen name="admin" options={{ title: tx('nav_admin') }} />
         <Stack.Screen name="legal/[doc]" options={{ title: '', headerLeft: () => <BackButton fallback="/" /> }} />
-        <Stack.Screen name="reset-password" options={{ title: 'New password' }} />
+        <Stack.Screen name="reset-password" options={{ title: tx('nav_new_password') }} />
       </Stack>
+      <UpdateGate />
     </>
   );
 }

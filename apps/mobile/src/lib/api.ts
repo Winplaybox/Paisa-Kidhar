@@ -1,4 +1,5 @@
 // The ONE typed API client. Attaches the Supabase access token; normalises errors.
+import { t as tr } from '@/i18n';
 import { Platform } from 'react-native';
 
 import { config } from './config';
@@ -29,14 +30,14 @@ async function request<T>(path: string, { method = 'GET', body, auth = true, hea
   try {
     res = await fetch(`${config.apiUrl}${path}`, { method, headers: h, body: body === undefined ? undefined : JSON.stringify(body) });
   } catch {
-    throw new ApiError(0, 'offline', "You're offline or the server is waking up. Please try again.");
+    throw new ApiError(0, 'offline', tr('cm_offline'));
   }
   if (raw) return res as unknown as T;
   const text = await res.text();
   const json = text ? JSON.parse(text) : null;
   if (!res.ok) {
     const e = json?.error ?? {};
-    throw new ApiError(res.status, e.code ?? 'error', e.message ?? 'Something went wrong.', e.details);
+    throw new ApiError(res.status, e.code ?? 'error', e.message ?? tr('cm_error'), e.details);
   }
   return json as T;
 }
@@ -132,6 +133,8 @@ export const api = {
     request<{ status: ContributionStatus }>(`/v1/public/pledges/${reference}?token=${encodeURIComponent(token)}`, { auth: false }),
 
   categories: () => request<{ categories: CategoryInfo[] }>('/v1/public/categories', { auth: false }),
+  sendFeedback: (body: { rating: number; message?: string; email?: string; app_version?: string; platform?: string; lang?: string }) =>
+    request<{ ok: boolean }>('/v1/public/feedback', { method: 'POST', body, auth: false }),
   plans: () => request<Plans>('/v1/billing/plans', { auth: false }),
   cardCheckout: (reference: string, token: string, email: string, style: CardStyleInput) =>
     request<{ card_id: string; checkout_url: string; edit_key: string }>(`/v1/public/pledges/${reference}/card-checkout`, { method: 'POST', body: { token, email, ...style }, auth: false }),

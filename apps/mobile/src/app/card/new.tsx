@@ -237,7 +237,7 @@ export default function NewCard() {
             <View style={{ alignItems: 'center' }}>
               <CardStage key={replay} spec={spec} width={Math.min(300, inner)} reveal autoOpenMs={edit ? 600 : 900} celebrate={false} hint={tx('cd_tap_open')} />
             </View>
-            <Row style={{ justifyContent: 'center' }}><Button title="↻" kind="ghost" full={false} onPress={() => setReplay((n) => n + 1)} accessibilityHint="Replay" /></Row>
+            <Row style={{ justifyContent: 'center' }}><Button title="↻" kind="ghost" full={false} onPress={() => setReplay((n) => n + 1)} accessibilityHint={tx('cd_replay')} /></Row>
             {!edit ? (
               <>
                 <Card style={{ gap: 6 }}>
@@ -267,7 +267,7 @@ export default function NewCard() {
       ) : null}
 
       <Modal visible={!!previewing} transparent animationType="fade" onRequestClose={() => setPreviewing(null)}>
-        <Pressable style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.72)', alignItems: 'center', justifyContent: 'center' }} onPress={() => setPreviewing(null)} accessibilityLabel="Close preview">
+        <Pressable style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.72)', alignItems: 'center', justifyContent: 'center' }} onPress={() => setPreviewing(null)} accessibilityLabel={tx('cd_close_prev')}>
           {previewing ? (
             <View style={{ alignItems: 'center', gap: t.space.md }}>
               <CardStage key={`${previewing}-${replay}`} spec={{ ...spec, template: previewing, palette }} width={Math.min(300, width - 48)} reveal autoOpenMs={500} hint={tx('cd_tap_open')} />

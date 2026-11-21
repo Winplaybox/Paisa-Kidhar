@@ -4,6 +4,7 @@ import type Ionicons from '@expo/vector-icons/Ionicons';
 import { useQuery } from '@tanstack/react-query';
 import type { ComponentProps } from 'react';
 
+import { t as tr } from '@/i18n';
 import { api, type CategoryInfo } from './api';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
@@ -28,5 +29,8 @@ export function categoryIcon(list: CategoryInfo[], key: string): IconName {
 }
 
 export function categoryLabel(list: CategoryInfo[], key: string, custom?: string | null): string {
-  return custom || list.find((c) => c.key === key)?.label || 'Other';
+  if (custom) return custom;
+  const k = `cat_${key}`;
+  const local = tr(k);
+  return local !== k ? local : list.find((c) => c.key === key)?.label || tr('cat_other');
 }

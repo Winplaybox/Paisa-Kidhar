@@ -6,10 +6,12 @@ import { ActivityIndicator } from 'react-native';
 import { Anim, ConfettiBurst } from '@/design-system/Anim';
 import { Banner, Button, Screen, Text } from '@/design-system/components';
 import { useTheme } from '@/design-system/ThemeProvider';
+import { useI18n } from '@/i18n';
 import { api } from '@/lib/api';
 
 /** Premium is granted only by the verified webhook; this screen just polls the order status. */
 export default function BillingReturn() {
+  const { t: tx } = useI18n();
   const t = useTheme();
   const qc = useQueryClient();
   const { order } = useLocalSearchParams<{ order?: string }>();
@@ -22,12 +24,12 @@ export default function BillingReturn() {
 
   return (
     <Screen>
-      {!order ? <Banner tone="warning" title="No order to check." /> :
-        status === 'succeeded' ? <><ConfettiBurst show /><Anim name="success" size={140} style={{ alignSelf: 'center' }} /><Text variant="title">You're Premium ✦</Text><Banner tone="positive" title="Payment received. Themes and extra goals are unlocked." /></> :
-        status === 'failed' || status === 'cancelled' ? <Banner tone="negative" title="Payment didn't go through" body="You haven't been charged. You can try again any time." /> :
-        status === 'created' && (q.data && q.dataUpdatedAt && q.isFetched) ? <><ActivityIndicator color={t.colors.accent} /><Text muted style={{ textAlign: 'center' }}>Confirming your payment… this can take up to a minute for UPI.</Text></> :
+      {!order ? <Banner tone="warning" title={tx('br_none')} /> :
+        status === 'succeeded' ? <><ConfettiBurst show /><Anim name="success" size={140} style={{ alignSelf: 'center' }} /><Text variant="title">{tx('br_ok_t')}</Text><Banner tone="positive" title={tx('br_ok_b')} /></> :
+        status === 'failed' || status === 'cancelled' ? <Banner tone="negative" title={tx('br_fail_t')} body={tx('br_fail_b')} /> :
+        status === 'created' && (q.data && q.dataUpdatedAt && q.isFetched) ? <><ActivityIndicator color={t.colors.accent} /><Text muted style={{ textAlign: 'center' }}>{tx('br_wait')}</Text></> :
         <ActivityIndicator color={t.colors.accent} />}
-      <Button title="Go to my registry" kind="secondary" onPress={() => router.replace('/home')} />
+      <Button title={tx('br_go')} kind="secondary" onPress={() => router.replace('/home')} />
     </Screen>
   );
 }
