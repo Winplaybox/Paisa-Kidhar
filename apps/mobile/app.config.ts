@@ -31,6 +31,9 @@ const plugins: ExpoConfig['plugins'] = [
     },
   ],
   'expo-sharing',
+  '@react-native-firebase/app',
+  '@react-native-firebase/app-check',
+  '@react-native-firebase/crashlytics',
   ['expo-build-properties', { android: { minSdkVersion: 24, compileSdkVersion: 37, targetSdkVersion: 36, enableProguardInReleaseBuilds: true, enableShrinkResourcesInReleaseBuilds: true } }],
   [
     'react-native-google-mobile-ads',

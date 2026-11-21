@@ -350,3 +350,11 @@ async def test_categories_catalog_and_custom(client, make_user):
     assert r.status_code == 422
     r = await client.post(url, json={"title": "X", "target_rupees": 1000, "category": "Bad Key!"}, headers=owner["h"])
     assert r.status_code == 422
+
+
+async def test_app_check_rejects_garbage_token_but_monitor_mode_allows(client, settings):
+    from app.core.appcheck import AppCheckVerifier
+    assert await AppCheckVerifier(settings).verify("not-a-jwt") is False
+    # default mode is "monitor": an Android request without a valid token is logged, not blocked
+    r = await client.get("/v1/public/categories", headers={"x-client-platform": "android", "x-firebase-appcheck": "bad"})
+    assert r.status_code == 200

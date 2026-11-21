@@ -12,6 +12,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { BackButton } from '@/design-system/BackButton';
 import { ThemeProvider, useTheme } from '@/design-system/ThemeProvider';
 import { AuthProvider } from '@/lib/auth';
+import { initFirebase } from '@/lib/firebase';
 import { queryClient } from '@/lib/queries';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -55,6 +56,7 @@ function Shell() {
 }
 
 export default function RootLayout() {
+  useEffect(() => { initFirebase(); }, []);
   const [loaded] = useFonts({
     InstrumentSans_400Regular, InstrumentSans_500Medium, InstrumentSans_600SemiBold,
     BricolageGrotesque_600SemiBold, BricolageGrotesque_700Bold,

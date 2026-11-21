@@ -11,9 +11,11 @@ import asyncpg
 import httpx
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from .api.v1 import admin, auth, billing, contributions, events, health, insights, public, registries
 from .core import errors
+from .core.appcheck import AppCheckVerifier
 from .core.security import JwtVerifier, RateLimiter
 from .core.settings import Settings, get_settings
 
@@ -67,10 +69,23 @@ def create_app(settings: Settings | None = None, *, pool_factory=None, http_fact
     app.state.settings = settings
     app.state.jwt = JwtVerifier(settings)
     app.state.limiter = RateLimiter()
+    app.state.appcheck = AppCheckVerifier(settings)
 
     app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origin_list, allow_credentials=False,
                        allow_methods=["GET", "POST", "PATCH", "PUT", "DELETE"],
-                       allow_headers=["authorization", "content-type", "idempotency-key", "x-request-id"], max_age=600)
+                       allow_headers=["authorization", "content-type", "idempotency-key", "x-request-id", "x-client-platform", "x-firebase-appcheck"], max_age=600)
+
+    @app.middleware("http")
+    async def app_check(request: Request, call_next):
+        # Only the Android app announces itself; web and server-to-server callers (webhooks) are rate-limited instead.
+        mode = settings.app_check_mode
+        if mode != "off" and request.headers.get("x-client-platform") == "android" and request.url.path.startswith("/v1/"):
+            ok = await app.state.appcheck.verify(request.headers.get("x-firebase-appcheck", ""))
+            if not ok:
+                access.warning("app_check_failed", extra={"path": request.url.path, "mode": mode})
+                if mode == "enforce":
+                    return JSONResponse({"error": {"code": "app_check", "message": "Please update Paisa Kidhar from Google Play."}}, status_code=403)
+        return await call_next(request)
 
     @app.middleware("http")
     async def request_context(request: Request, call_next):

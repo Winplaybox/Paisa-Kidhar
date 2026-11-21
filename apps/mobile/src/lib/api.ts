@@ -1,5 +1,8 @@
 // The ONE typed API client. Attaches the Supabase access token; normalises errors.
+import { Platform } from 'react-native';
+
 import { config } from './config';
+import { appCheckToken, logEvent } from './firebase';
 import { supabase } from './supabase';
 
 export class ApiError extends Error {
@@ -13,6 +16,11 @@ type Opts = { method?: string; body?: unknown; auth?: boolean; headers?: Record<
 async function request<T>(path: string, { method = 'GET', body, auth = true, headers = {}, raw }: Opts = {}): Promise<T> {
   const h: Record<string, string> = { accept: 'application/json', ...headers };
   if (body !== undefined) h['content-type'] = 'application/json';
+  if (Platform.OS === 'android') {
+    h['x-client-platform'] = 'android';
+    const ac = await appCheckToken();
+    if (ac) h['x-firebase-appcheck'] = ac;
+  }
   if (auth) {
     const { data } = await supabase.auth.getSession();
     if (data.session) h.authorization = `Bearer ${data.session.access_token}`;
@@ -133,6 +141,8 @@ export const api = {
   adminRegistries: (qs: string) => request<{ items: (Registry & { owner_username: string })[] }>(`/v1/admin/registries${q({ q: qs })}`),
   moderate: (id: string, action: 'hide' | 'unhide') => request(`/v1/admin/registries/${id}/moderation`, { method: 'POST', body: { action } }),
 
-  track: (name: string, props: Record<string, string | number | boolean> = {}) =>
-    request('/v1/events', { method: 'POST', body: { name, props } }).catch(() => undefined),
+  track: (name: string, props: Record<string, string | number | boolean> = {}) => {
+    logEvent(name, props);
+    return request('/v1/events', { method: 'POST', body: { name, props } }).catch(() => undefined);
+  },
 };
