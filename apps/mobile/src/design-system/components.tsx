@@ -5,7 +5,7 @@ import * as Haptics from 'expo-haptics';
 import { useEffect, useRef, useState, type ComponentProps, type ReactNode } from 'react';
 import {
   ActivityIndicator, Animated, Platform, Pressable, ScrollView, Text as RNText, TextInput, View,
-  type PressableProps, type StyleProp, type TextInputProps, type TextStyle, type ViewStyle,
+  type GestureResponderEvent, type PressableProps, type StyleProp, type TextInputProps, type TextStyle, type ViewStyle,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -136,7 +136,7 @@ export function Field({ label, error, hint, style, ...input }: TextInputProps & 
   );
 }
 
-export function Chip({ label, selected, onPress, color }: { label: string; selected?: boolean; onPress?: () => void; color?: string }) {
+export function Chip({ label, selected, onPress, color }: { label: string; selected?: boolean; onPress?: (e?: GestureResponderEvent) => void; color?: string }) {
   const t = useTheme();
   return (
     <Pressable accessibilityRole="button" accessibilityState={{ selected: !!selected }} onPress={onPress}

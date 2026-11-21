@@ -55,7 +55,7 @@ export default function Settings() {
       <Card>
         <Text variant="heading">Appearance</Text>
         <Row gap={t.space.sm} wrap>
-          {(['system', 'light', 'dark'] as const).map((p) => <Chip key={p} label={p[0].toUpperCase() + p.slice(1)} selected={pref === p} onPress={() => setPref(p)} />)}
+          {(['system', 'light', 'dark'] as const).map((p) => <Chip key={p} label={p[0].toUpperCase() + p.slice(1)} selected={pref === p} onPress={(e) => setPref(p, e ? { x: e.nativeEvent.pageX, y: e.nativeEvent.pageY } : undefined)} />)}
         </Row>
       </Card>
 
