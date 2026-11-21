@@ -2,7 +2,22 @@
 
 Everything runs on free tiers: Supabase (existing `winplayboxsite` project, isolated `paisa` schema), Render (API + static web), EAS (Android builds), Google Play.
 
-> Status on 21 Nov 2026: schema migrations `20261121000000_paisa_schema` and `20261121000100_fix_upi_vpa_check` are **applied** to `winplayboxsite` (`xatbfyiytcnogfbtfsym`). Nothing else is deployed yet.
+> **LIVE status (21 Nov 2026)**
+> - DB: migrations applied to `winplayboxsite`; `paisa_api` login enabled (password only in Render env).
+> - API: Render `paisa-kidhar-registry-api` (Singapore, free) → https://paisa-kidhar-registry-api.onrender.com — deploys branch `feat/production-app` (switch to `main` in Render → Settings after merging PR #1).
+> - Web: Hostinger website `paisa.winplaybox.in` (static, `.htaccess` SPA rewrite). DNS ALIAS auto-created.
+> - Dodo LIVE: product `pdt_0NsPPvAZmY1qMyoo5799p` (₹499 incl. GST), API key `paisa-kidhar-api` (least privilege), webhook `ep_3MP8yBKaSh8kO0i1DoXqQuOFiWK` (signature verified in prod). `PAYMENTS_ENABLED=true`.
+> - Verified in production: email sign-up → confirm → login by username, create/publish registry, guest gift → UPI screen → "I've paid" → couple confirms → totals/charts, Premium checkout opens Dodo LIVE (₹499).
+> - Google sign-in (web) uses Supabase's Google client `239411206040-1rj5…`; Android native sign-in needs an Android OAuth client in that same GCP project (package + SHA-1) after the first EAS build.
+
+## Re-deploying the web app (Hostinger)
+```bash
+cd apps/mobile
+EXPO_PUBLIC_API_URL=https://paisa-kidhar-registry-api.onrender.com EXPO_PUBLIC_WEB_URL=https://paisa.winplaybox.in \
+  npx expo export --platform web --output-dir ../../dist-web
+cp ../../docs/hostinger.htaccess ../../dist-web/.htaccess && (cd ../../dist-web && zip -qr ../site.zip .)
+```
+Upload `site.zip` to the website root (hPanel → File manager, or the Hostinger API upload URL), then run *Deploy static site archive* (hPanel or `hosting_websites_deploy-static-site-archive`). Once GitHub Actions billing is fixed, this can be automated.
 
 ## 1. Database role (one-time, Supabase SQL editor)
 
@@ -38,7 +53,7 @@ Google Cloud → APIs & Services → Credentials (same project as your existing 
    - the Play **app signing** key (Play Console → Setup → App signing) once the app exists in Play.
    No client secret goes in the app.
 
-## 4. Render
+## 4. Render (API) — already done; for a fresh setup:
 
 1. Render → New → Blueprint → connect `Winplaybox/Paisa-Kidhar` → it reads `render.yaml` (API in Singapore + static web).
 2. Fill the `sync:false` env vars: `DATABASE_URL`, `SUPABASE_ANON_KEY` (publishable key), `SUPABASE_JWT_SECRET` (if HS256), `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY`.
