@@ -45,6 +45,7 @@ export default function Goals() {
   };
 
   return (
+    <View style={{ flex: 1 }}>
     <Screen edges={['top']}>
       <Row style={{ justifyContent: 'space-between' }}>
         <View style={{ flex: 1 }}>
@@ -101,7 +102,8 @@ export default function Goals() {
       })}
 
       {r.status === 'published' ? <ShareCard registry={r} /> : null}
-      {celebrate ? <ConfettiBurst key={celebrate} show /> : null}
     </Screen>
+    {celebrate ? <ConfettiBurst key={celebrate} show /> : null}
+    </View>
   );
 }

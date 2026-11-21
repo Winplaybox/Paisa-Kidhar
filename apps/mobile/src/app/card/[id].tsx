@@ -8,6 +8,7 @@ import { ActivityIndicator, Linking, Platform, ScrollView, Share, useWindowDimen
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ShagunCardView } from '@/components/ShagunCardView';
+import { BackButton } from '@/design-system/BackButton';
 import { ConfettiBurst } from '@/design-system/Anim';
 import { Banner, Button, EmptyState, Row, Text } from '@/design-system/components';
 import { useTheme } from '@/design-system/ThemeProvider';
@@ -39,6 +40,7 @@ export default function CardPage() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: t.colors.bg }}>
       <Head><title>Shagun Card | Paisa Kidhar</title><meta name="robots" content="noindex" /></Head>
+      <View style={{ paddingHorizontal: t.space.md, paddingTop: t.space.xs }}><BackButton fallback={c?.slug ? `/r/${c.slug}` : '/'} /></View>
       <ScrollView contentContainerStyle={{ padding: t.space.lg, gap: t.space.lg, alignItems: 'center', paddingBottom: t.space.xxxl }}>
         {q.isLoading ? <ActivityIndicator color={t.colors.accent} style={{ marginTop: 80 }} /> :
           q.error ? <EmptyState icon="mail-unread-outline" title="Card not found" body={q.error instanceof ApiError ? q.error.message : 'Please check the link.'} /> :

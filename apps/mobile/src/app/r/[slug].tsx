@@ -6,12 +6,13 @@ import * as Crypto from 'expo-crypto';
 import { Head } from 'expo-router/head';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { Linking, Platform, ScrollView, Switch, View } from 'react-native';
+import { BackHandler, Linking, Platform, ScrollView, Switch, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ShagunCardUpsell } from '@/components/ShagunCardUpsell';
 import { Anim, ConfettiBurst } from '@/design-system/Anim';
+import { BackButton } from '@/design-system/BackButton';
 import { Banner, Button, Card, Chip, EmptyState, ErrorState, Field, LoadingList, ProgressBar, Row, Text } from '@/design-system/components';
 import { useTheme } from '@/design-system/ThemeProvider';
 import { api, ApiError, type Pledge, type PublicRegistry } from '@/lib/api';
@@ -72,6 +73,16 @@ export default function PublicRegistryScreen() {
   };
 
   const reset = () => { setStep('browse'); setGoal(null); setAmountText(''); setPledge(null); setErr(null); q.refetch(); };
+
+  // Android hardware back walks the gift steps backwards before leaving the page.
+  useEffect(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (step === 'amount') { setStep('browse'); return true; }
+      if (step === 'pay' || step === 'done') { reset(); return true; }
+      return false;
+    });
+    return () => sub.remove();
+  });
 
   if (q.isLoading) return <Wrap t={t}><LoadingList rows={3} /></Wrap>;
   if (q.error) {
@@ -149,7 +160,7 @@ export default function PublicRegistryScreen() {
                 <Chip key={p} label={formatINR(p)} selected={amount === p} onPress={() => setAmountText(String(p / 100))} />
               ))}
             </Row>
-            <Field label="Or enter an amount (₹)" value={amountText} onChangeText={setAmountText} keyboardType="decimal-pad" placeholder="1100" error={amountErr} />
+            <Field label="Or enter an amount (₹)" value={amountText} onChangeText={(v) => setAmountText(v.replace(/[^\d]/g, ""))} keyboardType="number-pad" inputMode="numeric" maxLength={7} placeholder="1100" error={amountErr} />
             <Field label="Your name" value={name} onChangeText={setName} placeholder="Sunita Mausi" maxLength={60} autoComplete="name" />
             <Field label="A blessing for the couple (optional)" value={message} onChangeText={setMessage} multiline maxLength={280} placeholder="Wishing you a lifetime of adventures!" />
             <Row style={{ justifyContent: 'space-between' }}>
@@ -211,6 +222,7 @@ export default function PublicRegistryScreen() {
 function Wrap({ t, children }: { t: ReturnType<typeof useTheme>; children: React.ReactNode }) {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: t.colors.bg }}>
+      {router.canGoBack() ? <View style={{ paddingHorizontal: t.space.md, paddingTop: t.space.xs }}><BackButton /></View> : null}
       <ScrollView contentContainerStyle={{ padding: t.space.lg, gap: t.space.lg, paddingBottom: t.space.xxxl, maxWidth: 640, width: '100%', alignSelf: 'center' }}
         keyboardShouldPersistTaps="handled">
         {children}

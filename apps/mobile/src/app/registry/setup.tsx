@@ -4,6 +4,7 @@ import { Switch, View } from 'react-native';
 
 import { Banner, Button, Card, Chip, Field, Row, Screen, Text } from '@/design-system/components';
 import { registryThemeNames, registryThemeSwatch } from '@/design-system/theme';
+import { DateField } from '@/design-system/DateField';
 import { useTheme } from '@/design-system/ThemeProvider';
 import type { RegistryInput, RegistryTheme } from '@/lib/api';
 import { config } from '@/lib/config';
@@ -30,7 +31,7 @@ export default function RegistrySetup() {
 
   const errors = {
     upi: f.upi_vpa && !VPA.test(f.upi_vpa.trim()) ? 'That doesn’t look like a UPI ID (e.g. riya@okaxis)' : null,
-    date: f.wedding_date && !DATE.test(f.wedding_date) ? 'Use YYYY-MM-DD, e.g. 2027-02-14' : null,
+    date: f.wedding_date && !DATE.test(f.wedding_date) ? 'Pick a valid date' : null,
   };
 
   const submit = () => {
@@ -51,13 +52,13 @@ export default function RegistrySetup() {
       <Text variant="title">{id ? 'Registry details' : 'Create your registry'}</Text>
       {err ? <Banner tone="negative" title={err} /> : null}
       <Card style={{ gap: t.space.lg }}>
-        <Row gap={t.space.md}>
-          <View style={{ flex: 1 }}><Field label="Partner one" value={f.partner_one} onChangeText={set('partner_one')} placeholder="Riya" autoComplete="name" /></View>
-          <View style={{ flex: 1 }}><Field label="Partner two" value={f.partner_two} onChangeText={set('partner_two')} placeholder="Arjun" /></View>
+        <Row gap={t.space.md} wrap>
+          <View style={{ flex: 1, minWidth: 220 }}><Field label="Partner one" value={f.partner_one} onChangeText={set('partner_one')} placeholder="Riya" autoComplete="name" /></View>
+          <View style={{ flex: 1, minWidth: 220 }}><Field label="Partner two" value={f.partner_two} onChangeText={set('partner_two')} placeholder="Arjun" /></View>
         </Row>
-        <Row gap={t.space.md}>
-          <View style={{ flex: 1 }}><Field label="Wedding date" value={f.wedding_date ?? ''} onChangeText={set('wedding_date')} placeholder="2027-02-14" error={errors.date} keyboardType="numbers-and-punctuation" /></View>
-          <View style={{ flex: 1 }}><Field label="City (optional)" value={f.city ?? ''} onChangeText={set('city')} placeholder="Mumbai" /></View>
+        <Row gap={t.space.md} wrap>
+          <View style={{ flex: 1, minWidth: 220 }}><DateField label="Wedding date (optional)" value={f.wedding_date} onChange={set('wedding_date')} error={errors.date} /></View>
+          <View style={{ flex: 1, minWidth: 220 }}><Field label="City (optional)" value={f.city ?? ''} onChangeText={set('city')} placeholder="Mumbai" autoComplete="postal-address-locality" /></View>
         </Row>
         <Field label="Your story (optional)" value={f.story} onChangeText={set('story')} multiline maxLength={1200}
           placeholder="We met at a chai stall in Pune… now we're dreaming of a honeymoon in Bali!" />

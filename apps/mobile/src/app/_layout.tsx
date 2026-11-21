@@ -6,13 +6,18 @@ import { SplashScreen, Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SystemUI from 'expo-system-ui';
 import { useEffect } from 'react';
+import { Platform } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { BackButton } from '@/design-system/BackButton';
 import { ThemeProvider, useTheme } from '@/design-system/ThemeProvider';
 import { AuthProvider } from '@/lib/auth';
 import { queryClient } from '@/lib/queries';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
+
+// Native: sheets slide up. Web: a normal page so the header and back button always show.
+const MODAL = Platform.OS === 'web' ? 'card' : 'modal';
 
 function Shell() {
   const t = useTheme();
@@ -28,6 +33,8 @@ function Shell() {
           headerShadowVisible: false,
           contentStyle: { backgroundColor: t.colors.bg },
           animation: 'slide_from_right',
+          headerBackVisible: false,
+          headerLeft: () => <BackButton fallback="/home" />,
         }}
       >
         <Stack.Screen name="index" options={{ headerShown: false }} />
@@ -35,12 +42,12 @@ function Shell() {
         <Stack.Screen name="(app)" options={{ headerShown: false }} />
         <Stack.Screen name="r/[slug]" options={{ headerShown: false }} />
         <Stack.Screen name="card/[id]" options={{ headerShown: false }} />
-        <Stack.Screen name="registry/setup" options={{ title: 'Your registry', presentation: 'modal' }} />
-        <Stack.Screen name="goal/[id]" options={{ title: 'Goal', presentation: 'modal' }} />
-        <Stack.Screen name="premium" options={{ title: 'Premium', presentation: 'modal' }} />
+        <Stack.Screen name="registry/setup" options={{ title: 'Your registry', presentation: MODAL }} />
+        <Stack.Screen name="goal/[id]" options={{ title: 'Goal', presentation: MODAL }} />
+        <Stack.Screen name="premium" options={{ title: 'Premium', presentation: MODAL }} />
         <Stack.Screen name="billing/return" options={{ title: 'Payment' }} />
         <Stack.Screen name="admin" options={{ title: 'Admin' }} />
-        <Stack.Screen name="legal/[doc]" options={{ title: '' }} />
+        <Stack.Screen name="legal/[doc]" options={{ title: '', headerLeft: () => <BackButton fallback="/" /> }} />
         <Stack.Screen name="reset-password" options={{ title: 'New password' }} />
       </Stack>
     </>
