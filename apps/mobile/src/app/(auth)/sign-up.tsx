@@ -6,6 +6,7 @@ import { GoogleButton } from '@/components/GoogleButton';
 import { Banner, Button, Field, OrDivider, Screen, Text } from '@/design-system/components';
 import { useTheme } from '@/design-system/ThemeProvider';
 import { friendlyAuthError, useAuth } from '@/lib/auth';
+import { STRONG } from '@/lib/password';
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
@@ -21,7 +22,7 @@ export default function SignUp() {
   const errors = {
     name: name && name.trim().length < 2 ? 'Enter your name' : null,
     email: email && !EMAIL.test(email.trim()) ? 'Enter a valid email' : null,
-    password: password && (password.length < 8 || !/\d/.test(password) || !/[a-z]/i.test(password)) ? 'At least 8 characters with a letter and a number' : null,
+    password: password && !STRONG(password) ? '8+ characters with uppercase, lowercase, a number and a symbol' : null,
   };
   const valid = name.trim().length >= 2 && EMAIL.test(email.trim()) && !errors.password && password.length >= 8;
 
@@ -59,7 +60,7 @@ export default function SignUp() {
         <Field label="Email" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" autoComplete="email"
           textContentType="emailAddress" placeholder="riya@gmail.com" error={errors.email} />
         <Field label="Password" value={password} onChangeText={setPassword} secureTextEntry autoComplete="new-password" textContentType="newPassword"
-          placeholder="At least 8 characters" error={errors.password} onSubmitEditing={submit} />
+          placeholder="e.g. Shaadi@2027" error={errors.password} onSubmitEditing={submit} />
         <Button title="Create account" kind="accent" loading={busy} onPress={submit} />
       </View>
       <Text variant="caption" muted style={{ textAlign: 'center' }}>

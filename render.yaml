@@ -1,7 +1,7 @@
 # Render Blueprint — free tier. Secrets are marked sync:false and entered in the Render dashboard.
 services:
   - type: web
-    name: paisa-kidhar-api
+    name: paisa-kidhar-registry-api
     runtime: python
     plan: free
     region: singapore
@@ -57,7 +57,7 @@ services:
     autoDeploy: true
     envVars:
       - key: EXPO_PUBLIC_API_URL
-        value: https://paisa-kidhar-api.onrender.com
+        value: https://paisa-kidhar-registry-api.onrender.com
       - key: EXPO_PUBLIC_WEB_URL
         value: https://paisa.winplaybox.in
       - key: EXPO_PUBLIC_SUPABASE_URL
