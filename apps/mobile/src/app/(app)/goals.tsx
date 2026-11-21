@@ -3,6 +3,7 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { View } from 'react-native';
 
+import { ConfettiBurst } from '@/design-system/Anim';
 import { ShareCard } from '@/components/ShareCard';
 import { Banner, Button, Card, EmptyState, ErrorState, IconButton, LoadingList, ProgressBar, Row, Screen, Text } from '@/design-system/components';
 import { useTheme } from '@/design-system/ThemeProvider';
@@ -19,6 +20,7 @@ export default function Goals() {
   const qc = useQueryClient();
   const publish = usePublish(cur.id ?? '');
   const [err, setErr] = useState<string | null>(null);
+  const [celebrate, setCelebrate] = useState(0);
 
   if (cur.isLoading) return <Screen edges={['top']}><LoadingList /></Screen>;
   if (cur.error) return <Screen edges={['top']}><ErrorState message={errorMessage(cur.error)} onRetry={cur.refetch} /></Screen>;
@@ -59,7 +61,7 @@ export default function Goals() {
             onPress={() => publish.mutate(false, { onError: (e) => setErr(errorMessage(e)) })} />
         ) : (
           <Button title="Publish registry" kind="accent" icon="rocket-outline" full={false} loading={publish.isPending}
-            onPress={() => { setErr(null); publish.mutate(true, { onError: (e) => setErr(errorMessage(e)) }); }} />
+            onPress={() => { setErr(null); publish.mutate(true, { onSuccess: () => setCelebrate((n) => n + 1), onError: (e) => setErr(errorMessage(e)) }); }} />
         )}
         <Button title="Preview" kind="secondary" icon="eye-outline" full={false} onPress={() => router.push(`/r/${r.slug}?preview=1`)} />
       </Row>
@@ -71,7 +73,7 @@ export default function Goals() {
       </Row>
 
       {goals.length === 0 ? (
-        <EmptyState icon="airplane-outline" title="Add your first dream" body="Honeymoon in Bali, first-home savings, a new sofa… Guests love choosing what to fund." />
+        <EmptyState animated icon="airplane-outline" title="Add your first dream" body="Honeymoon in Bali, first-home savings, a new sofa… Guests love choosing what to fund." />
       ) : goals.map((g, idx) => {
         const p = g.target_paise ? g.raised_paise / g.target_paise : 0;
         return (
@@ -97,6 +99,7 @@ export default function Goals() {
       })}
 
       {r.status === 'published' ? <ShareCard registry={r} /> : null}
+      {celebrate ? <ConfettiBurst key={celebrate} show /> : null}
     </Screen>
   );
 }

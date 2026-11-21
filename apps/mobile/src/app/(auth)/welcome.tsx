@@ -2,6 +2,7 @@ import { Link, router } from 'expo-router';
 import { useState } from 'react';
 import { View } from 'react-native';
 
+import { Anim } from '@/design-system/Anim';
 import { GoogleButton } from '@/components/GoogleButton';
 import { Banner, Button, Card, Row, Screen, Text } from '@/design-system/components';
 import { useTheme } from '@/design-system/ThemeProvider';
@@ -12,6 +13,7 @@ export default function Welcome() {
   return (
     <Screen edges={['top', 'bottom']} style={{ paddingTop: t.space.xxxl, minHeight: '100%', justifyContent: 'center' }}>
       <View style={{ gap: t.space.md }}>
+        <Anim name="gift" size={130} loop style={{ marginLeft: -12 }} />
         <View style={{ alignSelf: 'flex-start', backgroundColor: t.colors.accentBg, borderRadius: t.radius.pill, paddingHorizontal: 12, paddingVertical: 6 }}>
           <Text variant="label" color={t.colors.accent}>Wedding dream registry</Text>
         </View>

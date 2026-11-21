@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { Anim } from './Anim';
 import { useTheme } from './ThemeProvider';
 import type { Theme } from './theme';
 
@@ -199,15 +200,17 @@ export function Banner({ tone = 'info', title, body, action }: {
   );
 }
 
-export function EmptyState({ icon, title, body, action }: {
-  icon: ComponentProps<typeof Ionicons>['name']; title: string; body: string; action?: ReactNode;
+export function EmptyState({ icon, title, body, action, animated }: {
+  icon: ComponentProps<typeof Ionicons>['name']; title: string; body: string; action?: ReactNode; animated?: boolean;
 }) {
   const t = useTheme();
   return (
     <View style={{ alignItems: 'center', padding: t.space.xxl, gap: t.space.md }}>
-      <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: t.colors.accentBg, alignItems: 'center', justifyContent: 'center' }}>
-        <Ionicons name={icon} size={32} color={t.colors.accent} />
-      </View>
+      {animated ? <Anim name="gift" size={150} loop /> : (
+        <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: t.colors.accentBg, alignItems: 'center', justifyContent: 'center' }}>
+          <Ionicons name={icon} size={32} color={t.colors.accent} />
+        </View>
+      )}
       <Text variant="heading" style={{ textAlign: 'center' }}>{title}</Text>
       <Text muted style={{ textAlign: 'center', maxWidth: 420 }}>{body}</Text>
       {action}

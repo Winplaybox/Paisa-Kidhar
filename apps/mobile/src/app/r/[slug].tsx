@@ -10,6 +10,7 @@ import { Linking, Platform, ScrollView, Switch, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { Anim, ConfettiBurst } from '@/design-system/Anim';
 import { Banner, Button, Card, Chip, EmptyState, ErrorState, Field, LoadingList, ProgressBar, Row, Text } from '@/design-system/components';
 import { useTheme } from '@/design-system/ThemeProvider';
 import { api, ApiError, type Pledge, type PublicRegistry } from '@/lib/api';
@@ -185,11 +186,10 @@ export default function PublicRegistryScreen() {
         </>
       ) : null}
 
+      <ConfettiBurst show={step === 'done'} />
       {step === 'done' && pledge ? (
         <View style={{ alignItems: 'center', gap: t.space.lg, paddingVertical: t.space.xxl }}>
-          <View style={{ width: 88, height: 88, borderRadius: 44, backgroundColor: t.colors.positiveBg, alignItems: 'center', justifyContent: 'center' }}>
-            <Ionicons name="heart" size={44} color={t.colors.positive} />
-          </View>
+          <Anim name="heart" size={160} />
           <Text variant="title" style={{ textAlign: 'center' }}>Thank you!</Text>
           <Text muted style={{ textAlign: 'center' }}>{couple} will see your {formatINR(pledge.amount_paise)} gift towards “{pledge.goal_title}” once it reaches their UPI.</Text>
           <Card tone="alt"><Text variant="caption" muted>Reference</Text><Text variant="heading" selectable>{pledge.reference}</Text></Card>

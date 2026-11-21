@@ -47,3 +47,4 @@ play-service-account.json
 *.keystore
 *.jks
 dist/
+public/dotlottie-player.wasm

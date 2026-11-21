@@ -30,7 +30,7 @@ export default function Home() {
     if (cur.error) return <ErrorState message={errorMessage(cur.error)} onRetry={cur.refetch} />;
     if (cur.hasNone || !cur.registry) {
       return (
-        <EmptyState icon="sparkles-outline" title="Let's create your registry"
+        <EmptyState animated icon="sparkles-outline" title="Let's create your registry"
           body="Add your names, wedding date and UPI ID. Then list a few dreams — guests will see them on your link."
           action={<Button title="Create my registry" kind="accent" full={false} icon="add" onPress={() => router.push('/registry/setup')} />} />
       );

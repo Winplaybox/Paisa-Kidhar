@@ -3,6 +3,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect } from 'react';
 import { ActivityIndicator } from 'react-native';
 
+import { Anim, ConfettiBurst } from '@/design-system/Anim';
 import { Banner, Button, Screen, Text } from '@/design-system/components';
 import { useTheme } from '@/design-system/ThemeProvider';
 import { api } from '@/lib/api';
@@ -22,7 +23,7 @@ export default function BillingReturn() {
   return (
     <Screen>
       {!order ? <Banner tone="warning" title="No order to check." /> :
-        status === 'succeeded' ? <><Text variant="title">You're Premium ✦</Text><Banner tone="positive" title="Payment received. Themes and extra goals are unlocked." /></> :
+        status === 'succeeded' ? <><ConfettiBurst show /><Anim name="success" size={140} style={{ alignSelf: 'center' }} /><Text variant="title">You're Premium ✦</Text><Banner tone="positive" title="Payment received. Themes and extra goals are unlocked." /></> :
         status === 'failed' || status === 'cancelled' ? <Banner tone="negative" title="Payment didn't go through" body="You haven't been charged. You can try again any time." /> :
         status === 'created' && (q.data && q.dataUpdatedAt && q.isFetched) ? <><ActivityIndicator color={t.colors.accent} /><Text muted style={{ textAlign: 'center' }}>Confirming your payment… this can take up to a minute for UPI.</Text></> :
         <ActivityIndicator color={t.colors.accent} />}
