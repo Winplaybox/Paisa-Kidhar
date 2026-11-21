@@ -41,11 +41,17 @@ async def _published(db, slug: str):
     return r
 
 
+@router.get("/categories", dependencies=[rate_limit("public_read", 120, 60)])
+async def categories(db=Depends(pool)):
+    rows = await db.fetch("select key, label, icon from paisa.categories where active order by position, label")
+    return {"categories": [dict(r) for r in rows]}
+
+
 @router.get("/registries/{slug}", dependencies=[rate_limit("public_read", 120, 60)])
 async def public_registry(slug: str, db=Depends(pool)):
     r = await _published(db, slug)
     goals = await db.fetch(
-        """select g.id, g.title, g.description, g.category, g.target_paise, g.status, g.target_date,
+        """select g.id, g.title, g.description, g.category, g.custom_category, g.target_paise, g.status, g.target_date,
                   coalesce(sum(c.amount_paise) filter (where c.status='confirmed'),0)::bigint raised_paise,
                   count(c.id) filter (where c.status='confirmed')::int contributions_count
            from paisa.goals g left join paisa.contributions c on c.goal_id=g.id

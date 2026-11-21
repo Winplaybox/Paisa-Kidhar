@@ -1,4 +1,5 @@
 /* OVD-contract primitives for React Native + web. Every colour/size comes from the theme. */
+import { FluidBackground } from './FluidBackground';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
 import { useEffect, useRef, useState, type ComponentProps, type ReactNode } from 'react';
@@ -38,13 +39,14 @@ export function Text({ variant = 'body', muted, color, style, children, ...rest 
   );
 }
 
-export function Screen({ children, scroll = true, padded = true, style, edges }: {
-  children: ReactNode; scroll?: boolean; padded?: boolean; style?: StyleProp<ViewStyle>; edges?: ('top' | 'bottom')[];
+export function Screen({ children, scroll = true, padded = true, style, edges, fluid }: {
+  children: ReactNode; scroll?: boolean; padded?: boolean; style?: StyleProp<ViewStyle>; edges?: ('top' | 'bottom')[]; fluid?: boolean;
 }) {
   const t = useTheme();
   const inner: ViewStyle = { padding: padded ? t.space.lg : 0, gap: t.space.lg, width: '100%', maxWidth: 760, alignSelf: 'center' };
   return (
     <SafeAreaView edges={edges ?? ['bottom']} style={{ flex: 1, backgroundColor: t.colors.bg }}>
+      {fluid ? <FluidBackground /> : null}
       {scroll ? (
         <ScrollView contentContainerStyle={[inner, { paddingBottom: t.space.xxxl }, style]} keyboardShouldPersistTaps="handled">
           {children}

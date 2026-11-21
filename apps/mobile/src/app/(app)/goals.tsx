@@ -4,11 +4,12 @@ import { useState } from 'react';
 import { View } from 'react-native';
 
 import { ConfettiBurst } from '@/design-system/Anim';
+import { showInterstitial } from '@/lib/ads';
 import { ShareCard } from '@/components/ShareCard';
 import { Banner, Button, Card, EmptyState, ErrorState, IconButton, LoadingList, ProgressBar, Row, Screen, Text } from '@/design-system/components';
 import { useTheme } from '@/design-system/ThemeProvider';
 import { api, type Goal } from '@/lib/api';
-import { CATEGORY_ICON } from '@/lib/categories';
+import { categoryIcon, useCategories } from '@/lib/categories';
 import { formatINR } from '@/lib/money';
 import { errorMessage, usePublish } from '@/lib/queries';
 import { useCurrentRegistry } from '@/lib/useCurrentRegistry';
@@ -16,6 +17,7 @@ import { useQueryClient } from '@tanstack/react-query';
 
 export default function Goals() {
   const t = useTheme();
+  const cats = useCategories();
   const cur = useCurrentRegistry();
   const qc = useQueryClient();
   const publish = usePublish(cur.id ?? '');
@@ -43,6 +45,7 @@ export default function Goals() {
   };
 
   return (
+    <View style={{ flex: 1 }}>
     <Screen edges={['top']}>
       <Row style={{ justifyContent: 'space-between' }}>
         <View style={{ flex: 1 }}>
@@ -61,7 +64,7 @@ export default function Goals() {
             onPress={() => publish.mutate(false, { onError: (e) => setErr(errorMessage(e)) })} />
         ) : (
           <Button title="Publish registry" kind="accent" icon="rocket-outline" full={false} loading={publish.isPending}
-            onPress={() => { setErr(null); publish.mutate(true, { onSuccess: () => setCelebrate((n) => n + 1), onError: (e) => setErr(errorMessage(e)) }); }} />
+            onPress={() => { setErr(null); publish.mutate(true, { onSuccess: () => { setCelebrate((n) => n + 1); setTimeout(() => showInterstitial({ premium: r.plan === 'premium' }), 3500); }, onError: (e) => setErr(errorMessage(e)) }); }} />
         )}
         <Button title="Preview" kind="secondary" icon="eye-outline" full={false} onPress={() => router.push(`/r/${r.slug}?preview=1`)} />
       </Row>
@@ -80,7 +83,7 @@ export default function Goals() {
           <Card key={g.id} onPress={() => router.push({ pathname: '/goal/[id]', params: { id: g.id, registry: r.id } })} accessibilityLabel={`Edit ${g.title}`}>
             <Row>
               <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: t.colors.accentBg, alignItems: 'center', justifyContent: 'center' }}>
-                <Ionicons name={CATEGORY_ICON[g.category]} size={20} color={t.colors.accent} />
+                <Ionicons name={categoryIcon(cats, g.category)} size={20} color={t.colors.accent} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text variant="label" numberOfLines={1}>{g.title}</Text>
@@ -99,7 +102,8 @@ export default function Goals() {
       })}
 
       {r.status === 'published' ? <ShareCard registry={r} /> : null}
-      {celebrate ? <ConfettiBurst key={celebrate} show /> : null}
     </Screen>
+    {celebrate ? <ConfettiBurst key={celebrate} show /> : null}
+    </View>
   );
 }

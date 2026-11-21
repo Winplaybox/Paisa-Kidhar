@@ -3,6 +3,7 @@ import * as Sharing from 'expo-sharing';
 import { useState } from 'react';
 import { Alert, Platform, View } from 'react-native';
 
+import { Pop } from '@/design-system/Anim';
 import { Banner, Button, Card, Chip, EmptyState, ErrorState, LoadingList, Row, Screen, Text } from '@/design-system/components';
 import { useTheme } from '@/design-system/ThemeProvider';
 import { api, type Contribution, type ContributionStatus } from '@/lib/api';
@@ -23,9 +24,10 @@ export default function Gifts() {
   const decide = useDecide();
   const [err, setErr] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
+  const [hearts, setHearts] = useState(0);
 
   const act = (c: Contribution, decision: 'confirmed' | 'rejected') => {
-    const run = () => decide.mutate({ id: c.id, decision }, { onError: (e) => setErr(errorMessage(e)) });
+    const run = () => decide.mutate({ id: c.id, decision }, { onSuccess: () => { if (decision === 'confirmed') setHearts((n) => n + 1); }, onError: (e) => setErr(errorMessage(e)) });
     if (decision === 'rejected' && Platform.OS !== 'web') {
       Alert.alert('Mark as not received?', `Only do this if ${formatINR(c.amount_paise)} with reference ${c.reference} never reached your UPI.`,
         [{ text: 'Cancel', style: 'cancel' }, { text: 'Not received', style: 'destructive', onPress: run }]);
@@ -55,9 +57,10 @@ export default function Gifts() {
   };
 
   if (cur.isLoading) return <Screen edges={['top']}><LoadingList /></Screen>;
-  if (!cur.registry) return <Screen edges={['top']}><EmptyState icon="wallet-outline" title="No gifts yet" body="Create and publish your registry to start receiving gifts." /></Screen>;
+  if (!cur.registry) return <Screen edges={['top']}><EmptyState animated icon="wallet-outline" title="No gifts yet" body="Create and publish your registry to start receiving gifts." /></Screen>;
 
   return (
+    <View style={{ flex: 1 }}>
     <Screen edges={['top']}>
       <Row style={{ justifyContent: 'space-between' }}>
         <Text variant="title">Gifts</Text>
@@ -70,7 +73,7 @@ export default function Gifts() {
         {FILTERS.map((f) => <Chip key={f.label} label={f.label} selected={filter === f.k} onPress={() => setFilter(f.k)} />)}
       </Row>
       {q.isLoading ? <LoadingList /> : q.error ? <ErrorState message={errorMessage(q.error)} onRetry={q.refetch} /> :
-        q.data!.items.length === 0 ? <EmptyState icon="mail-open-outline" title="Nothing here" body="New gifts will appear here as guests send them." /> :
+        q.data!.items.length === 0 ? <EmptyState animated icon="mail-open-outline" title="Nothing here" body="New gifts will appear here as guests send them." /> :
         q.data!.items.map((c) => (
           <Card key={c.id}>
             <Row style={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -99,6 +102,8 @@ export default function Gifts() {
           </Card>
         ))}
     </Screen>
+    <Pop trigger={hearts} />
+    </View>
   );
 }
 

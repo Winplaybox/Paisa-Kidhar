@@ -31,7 +31,10 @@ const plugins: ExpoConfig['plugins'] = [
     },
   ],
   'expo-sharing',
-  ['expo-build-properties', { android: { minSdkVersion: 24, enableProguardInReleaseBuilds: true, enableShrinkResourcesInReleaseBuilds: true } }],
+  '@react-native-firebase/app',
+  '@react-native-firebase/app-check',
+  '@react-native-firebase/crashlytics',
+  ['expo-build-properties', { android: { minSdkVersion: 24, compileSdkVersion: 37, targetSdkVersion: 36, enableProguardInReleaseBuilds: true, enableShrinkResourcesInReleaseBuilds: true } }],
   [
     'react-native-google-mobile-ads',
     {
@@ -58,6 +61,7 @@ const config: ExpoConfig = {
   android: {
     package: 'com.winplaybox.paisakidhar',
     versionCode: 1,
+    googleServicesFile: './google-services.json',
     adaptiveIcon: {
       backgroundColor: '#FFFCF7',
       foregroundImage: './assets/android-icon-foreground.png',

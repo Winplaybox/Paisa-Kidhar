@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "139598541085",
+    "project_id": "paisa-kidhar",
+    "storage_bucket": "paisa-kidhar.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:139598541085:android:7a6bc6e35c6b96f293f1f4",
+        "android_client_info": {
+          "package_name": "com.winplaybox.paisakidhar"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAfxrFDNG8SbCm2gkZ5PaZ73X0Ad-lXh_k"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

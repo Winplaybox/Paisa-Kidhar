@@ -54,3 +54,22 @@ We work hard to keep the service running but provide it "as is". To the extent p
 We'll notify you in the app before material changes. These terms are governed by the laws of India; courts in Mumbai have jurisdiction.
 
 Contact: support@winplaybox.in`;
+
+export const deleteAccount = `How to delete your Paisa Kidhar account and data
+
+In the app (Android or paisa.winplaybox.in):
+1. Sign in to Paisa Kidhar.
+2. Open Profile (Settings tab) → Delete my account → confirm.
+
+Can't sign in or uninstalled the app? Email support@winplaybox.in from the email address on your account with the subject "Delete my Paisa Kidhar account". We verify ownership and process the request within 30 days.
+
+What is deleted
+• Your profile (name, username, email), registries, goals, story and theme settings
+• Gift records and guest messages on your registries
+• Analytics events linked to your account
+
+What is kept, and for how long
+• Premium Registry and Shagun Card payment records (order ID, amount, date) — kept up to 8 years where Indian tax law requires invoices to be retained
+• Security audit log entries (what action happened and when) — kept for fraud prevention and security
+
+Your registries are hidden from guests immediately when you request deletion; everything else above is erased within 30 days.`;

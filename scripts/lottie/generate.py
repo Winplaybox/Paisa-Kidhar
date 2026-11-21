@@ -75,8 +75,8 @@ def layer(ind, name, shapes, *, p=(W / 2, H / 2), s=None, r=None, o=None, ip=0, 
             "shapes": shapes}
 
 
-def comp(name, layers, op):
-    return {"v": "5.12.0", "fr": FR, "ip": 0, "op": op, "w": W, "h": H, "nm": name, "ddd": 0, "assets": [],
+def comp(name, layers, op, w=W, h=H):
+    return {"v": "5.12.0", "fr": FR, "ip": 0, "op": op, "w": w, "h": h, "nm": name, "ddd": 0, "assets": [],
             "layers": layers}  # first layer renders on top
 
 
@@ -115,20 +115,23 @@ def heart_burst():
 
 
 def confetti(seed=7):
+    """Portrait 400x800 canvas so it can fill a phone screen ('cover') with paper-sized pieces."""
     random.seed(seed)
-    op = 150
+    op, cw, ch = 168, 400, 800
     colors = [ROSE, ROSE_LIGHT, GOLD, GREEN, PLUM, SKY]
     layers = []
-    for k in range(28):
-        x0 = random.uniform(10, W - 10)
-        delay = random.randint(0, 40)
-        drift = random.uniform(-40, 40)
-        spin = random.choice([-1, 1]) * random.uniform(240, 600)
-        w, h = random.choice([(10, 6), (8, 8), (12, 5)])
+    for k in range(56):
+        x0 = random.uniform(10, cw - 10)
+        delay = random.randint(0, 50)
+        fall = random.randint(95, 118)
+        drift = random.uniform(-60, 60)
+        spin = random.choice([-1, 1]) * random.uniform(240, 720)
+        w, h = random.choice([(10, 6), (8, 8), (12, 5), (6, 10)])
+        end = delay + fall
         layers.append(layer(k + 1, f"c{k}", [group(rect(w, h, 1.5), fill(random.choice(colors)))],
-                            p=an((delay, [x0, -10, 0]), (delay + 100, [x0 + drift, H + 20, 0]), ease={"i": {"x": [0.6], "y": [1]}, "o": {"x": [0.3], "y": [0.2]}}),
-                            r=an((delay, 0), (delay + 100, spin)), op=op))
-    return comp("confetti", layers, op)
+                            p=an((delay, [x0, -30, 0]), (end, [x0 + drift, ch + 30, 0]), ease={"i": {"x": [0.6], "y": [1]}, "o": {"x": [0.3], "y": [0.2]}}),
+                            r=an((delay, 0), (end, spin)), o=an((delay, 100), (end - 12, 100), (end, 0)), op=op))
+    return comp("confetti", layers, op, cw, ch)
 
 
 def gift():

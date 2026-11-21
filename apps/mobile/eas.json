@@ -12,8 +12,12 @@
         "EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_QpEcKrru1S6jW-k6llv30Q_4mV1QXO7",
         "EXPO_PUBLIC_API_URL": "https://paisa-kidhar-registry-api.onrender.com",
         "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "239411206040-1rj5nc3o4tcpr7soop3cc2ur8puao88b.apps.googleusercontent.com",
-        "EXPO_PUBLIC_ADS_ENABLED": "false",
-        "EXPO_PUBLIC_ANDROID_EXTERNAL_BILLING": "false"
+        "EXPO_PUBLIC_ADS_ENABLED": "true",
+        "EXPO_PUBLIC_ANDROID_EXTERNAL_BILLING": "false",
+        "EXPO_PUBLIC_ADMOB_ANDROID_APP_ID": "ca-app-pub-2699537002342677~1201551273",
+        "EXPO_PUBLIC_ADMOB_BANNER_ID": "ca-app-pub-2699537002342677/7575387933",
+        "EXPO_PUBLIC_ADMOB_INTERSTITIAL_ID": "ca-app-pub-2699537002342677/1597137099",
+        "EXPO_PUBLIC_ADMOB_APP_OPEN_ID": "ca-app-pub-2699537002342677/7779402063"
       }
     },
     "development": {

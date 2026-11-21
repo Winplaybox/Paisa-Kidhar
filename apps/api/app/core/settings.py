@@ -28,6 +28,10 @@ class Settings(BaseSettings):
     ip_hash_salt: str = Field(..., min_length=16)
     trusted_proxy_hops: int = Field(1, ge=0, le=5, description="reverse proxies in front of the API (Render = 1)")
 
+    # Firebase App Check (Play Integrity). monitor = log only; enforce = reject Android requests without a valid token.
+    app_check_mode: Literal["off", "monitor", "enforce"] = "monitor"
+    firebase_project_number: str = "139598541085"
+
     # Dodo Payments (Premium Registry — digital product the platform sells to the couple)
     payments_enabled: bool = False
     dodo_payments_api_key: str = ""

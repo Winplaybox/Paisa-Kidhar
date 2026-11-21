@@ -17,7 +17,7 @@ from .auth import ensure_profile
 router = APIRouter(prefix="/v1", tags=["registries"])
 
 Theme = Literal["rose", "plum", "marigold", "emerald", "ink"]
-Category = Literal["honeymoon", "home", "travel", "experience", "item", "savings", "other"]
+CATEGORY_KEY = r"^[a-z][a-z0-9_]{1,30}$"
 
 
 class RegistryIn(BaseModel):
@@ -69,7 +69,8 @@ class RegistryPatch(BaseModel):
 class GoalIn(BaseModel):
     title: str = Field(min_length=1, max_length=80)
     description: str = Field(default="", max_length=600)
-    category: Category = "other"
+    category: str = Field(default="other", pattern=CATEGORY_KEY)
+    custom_category: str | None = Field(default=None, max_length=40)
     target_rupees: int = Field(ge=100, le=100_000_000)
     target_date: dt.date | None = None
     visibility: Literal["public", "private"] = "public"
@@ -78,11 +79,25 @@ class GoalIn(BaseModel):
 class GoalPatch(BaseModel):
     title: str | None = Field(default=None, min_length=1, max_length=80)
     description: str | None = Field(default=None, max_length=600)
-    category: Category | None = None
+    category: str | None = Field(default=None, pattern=CATEGORY_KEY)
+    custom_category: str | None = Field(default=None, max_length=40)
     target_rupees: int | None = Field(default=None, ge=100, le=100_000_000)
     target_date: dt.date | None = None
     visibility: Literal["public", "private"] | None = None
     status: Literal["active", "paused", "archived", "completed"] | None = None
+
+
+def _clean_custom(category: str | None, custom: str | None) -> str | None:
+    """A custom label only makes sense for 'other'; empty means none."""
+    custom = " ".join((custom or "").split()) or None
+    if custom and len(custom) < 2:
+        raise AppError("Category name is too short.", code="invalid_category", status=422)
+    return custom if category == "other" else None
+
+
+async def _check_category(conn, key: str) -> None:
+    if not await conn.fetchval("select 1 from paisa.categories where key=$1 and active", key):
+        raise AppError("Unknown category.", code="invalid_category", status=422)
 
 
 class OrderIn(BaseModel):
@@ -205,12 +220,13 @@ async def create_goal(registry_id: str, body: GoalIn, ident: Identity = Depends(
         if n >= domain.goal_limit(r["plan"]):
             raise AppError(f"Free registries can have {domain.FREE_PLAN_GOAL_LIMIT} goals. Upgrade to Premium for more.",
                            code="premium_required", status=402)
+        await _check_category(conn, body.category)
         pos = await conn.fetchval("select coalesce(max(position),-1)+1 from paisa.goals where registry_id=$1", r["id"])
         g = await conn.fetchrow(
-            """insert into paisa.goals(registry_id,title,description,category,target_paise,target_date,visibility,position)
-               values ($1,$2,$3,$4,$5,$6,$7,$8) returning *""",
-            r["id"], body.title.strip(), body.description, body.category, domain.rupees_to_paise(body.target_rupees),
-            body.target_date, body.visibility, pos)
+            """insert into paisa.goals(registry_id,title,description,category,custom_category,target_paise,target_date,visibility,position)
+               values ($1,$2,$3,$4,$5,$6,$7,$8,$9) returning *""",
+            r["id"], body.title.strip(), body.description, body.category, _clean_custom(body.category, body.custom_category),
+            domain.rupees_to_paise(body.target_rupees), body.target_date, body.visibility, pos)
     return {**rec(g), "raised_paise": 0, "contributions_count": 0, "pending_count": 0}
 
 
@@ -231,6 +247,11 @@ async def update_goal(goal_id: str, body: GoalPatch, ident: Identity = Depends(c
         n = await db.fetchval("select count(*) from paisa.goals where registry_id=$1 and status<>'archived'", g["registry_id"])
         if n >= domain.goal_limit(r["plan"]):
             raise AppError("Goal limit reached for this plan.", code="premium_required", status=402)
+    if "category" in fields or "custom_category" in fields:
+        cat = fields.get("category") or g["category"]
+        if "category" in fields:
+            await _check_category(db, cat)
+        fields["custom_category"] = _clean_custom(cat, fields.get("custom_category", g["custom_category"]))
     if "target_rupees" in fields:
         fields["target_paise"] = domain.rupees_to_paise(fields.pop("target_rupees"))
     if not fields:

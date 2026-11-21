@@ -2,9 +2,13 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Redirect } from 'expo-router';
 import { Tabs } from 'expo-router/js-tabs';
 import type { ComponentProps } from 'react';
+import { useWindowDimensions } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useTheme } from '@/design-system/ThemeProvider';
+import { useAppOpenAd } from '@/lib/ads';
 import { useAuth } from '@/lib/auth';
+import { useCurrentRegistry } from '@/lib/useCurrentRegistry';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
 const tab = (title: string, icon: IconName, iconActive: IconName) => ({
@@ -15,6 +19,11 @@ const tab = (title: string, icon: IconName, iconActive: IconName) => ({
 export default function AppLayout() {
   const { ready, session } = useAuth();
   const t = useTheme();
+  const { width } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  const sidePad = Math.max(0, (width - 760) / 2); // keep tabs grouped under the content column on wide screens
+  const cur = useCurrentRegistry();
+  useAppOpenAd(!!session && cur.registry?.plan !== 'premium');
   if (ready && !session) return <Redirect href="/welcome" />;
   return (
     <Tabs
@@ -22,8 +31,8 @@ export default function AppLayout() {
         headerShown: false,
         tabBarActiveTintColor: t.colors.accent,
         tabBarInactiveTintColor: t.colors.textMuted,
-        tabBarStyle: { backgroundColor: t.colors.surface, borderTopColor: t.colors.border, height: 64, paddingBottom: 8, paddingTop: 6 },
-        tabBarLabelStyle: { fontFamily: t.font.semibold, fontSize: 12 },
+        tabBarStyle: { backgroundColor: t.colors.surface, borderTopColor: t.colors.border, height: 60 + insets.bottom, paddingBottom: Math.max(insets.bottom, 8), paddingTop: 6, paddingHorizontal: sidePad },
+        tabBarLabelStyle: { fontFamily: t.font.semibold, fontSize: 12, lineHeight: 16 },
         sceneStyle: { backgroundColor: t.colors.bg },
       }}
     >
