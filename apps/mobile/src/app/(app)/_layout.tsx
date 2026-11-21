@@ -6,6 +6,7 @@ import { useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useTheme } from '@/design-system/ThemeProvider';
+import { useI18n } from '@/i18n';
 import { useAppOpenAd } from '@/lib/ads';
 import { useAuth } from '@/lib/auth';
 import { useCurrentRegistry } from '@/lib/useCurrentRegistry';
@@ -19,6 +20,7 @@ const tab = (title: string, icon: IconName, iconActive: IconName) => ({
 export default function AppLayout() {
   const { ready, session } = useAuth();
   const t = useTheme();
+  const { t: tx } = useI18n();
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const sidePad = Math.max(0, (width - 760) / 2); // keep tabs grouped under the content column on wide screens
@@ -36,10 +38,10 @@ export default function AppLayout() {
         sceneStyle: { backgroundColor: t.colors.bg },
       }}
     >
-      <Tabs.Screen name="home" options={tab('Home', 'home-outline', 'home')} />
-      <Tabs.Screen name="goals" options={tab('My Registry', 'gift-outline', 'gift')} />
-      <Tabs.Screen name="gifts" options={tab('Gifts', 'wallet-outline', 'wallet')} />
-      <Tabs.Screen name="settings" options={tab('Profile', 'person-circle-outline', 'person-circle')} />
+      <Tabs.Screen name="home" options={tab(tx('tab_home'), 'home-outline', 'home')} />
+      <Tabs.Screen name="goals" options={tab(tx('tab_registry'), 'gift-outline', 'gift')} />
+      <Tabs.Screen name="gifts" options={tab(tx('tab_gifts'), 'wallet-outline', 'wallet')} />
+      <Tabs.Screen name="settings" options={tab(tx('tab_profile'), 'person-circle-outline', 'person-circle')} />
     </Tabs>
   );
 }

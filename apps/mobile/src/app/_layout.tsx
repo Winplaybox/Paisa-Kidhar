@@ -12,6 +12,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { BackButton } from '@/design-system/BackButton';
 import { ThemeProvider, useTheme } from '@/design-system/ThemeProvider';
 import { AuthProvider } from '@/lib/auth';
+import { initLanguage } from '@/i18n';
 import { initFirebase } from '@/lib/firebase';
 import { queryClient } from '@/lib/queries';
 
@@ -43,6 +44,7 @@ function Shell() {
         <Stack.Screen name="(app)" options={{ headerShown: false }} />
         <Stack.Screen name="r/[slug]" options={{ headerShown: false }} />
         <Stack.Screen name="card/[id]" options={{ headerShown: false }} />
+        <Stack.Screen name="card/new" options={{ headerShown: false }} />
         <Stack.Screen name="registry/setup" options={{ title: 'Your registry', presentation: MODAL }} />
         <Stack.Screen name="goal/[id]" options={{ title: 'Goal', presentation: MODAL }} />
         <Stack.Screen name="premium" options={{ title: 'Premium', presentation: MODAL }} />
@@ -56,7 +58,7 @@ function Shell() {
 }
 
 export default function RootLayout() {
-  useEffect(() => { initFirebase(); }, []);
+  useEffect(() => { initFirebase(); initLanguage(); }, []);
   const [loaded] = useFonts({
     InstrumentSans_400Regular, InstrumentSans_500Medium, InstrumentSans_600SemiBold,
     BricolageGrotesque_600SemiBold, BricolageGrotesque_700Bold,

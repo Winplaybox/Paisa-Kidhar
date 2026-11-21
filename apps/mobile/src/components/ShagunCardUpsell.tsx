@@ -1,55 +1,42 @@
-/* Offered on the guest's thank-you screen. A ₹49 digital card from the guest to the couple (sold via Dodo). */
-import * as WebBrowser from 'expo-web-browser';
-import { useState } from 'react';
-import { Platform, ScrollView, View } from 'react-native';
+/* Offered on the guest's thank-you screen: a teaser that opens the full card creator (occasions → designs → personalise → pay). */
+import { router } from 'expo-router';
+import { ScrollView, View } from 'react-native';
 
-import { CARD_DESIGNS, ShagunCardView } from '@/components/ShagunCardView';
-import { Banner, Button, Card, Chip, Field, Row, Text } from '@/design-system/components';
+import { TEMPLATES } from '@/cards/catalog';
+import { ShagunCardView } from '@/components/ShagunCardView';
+import { Button, Card, Text } from '@/design-system/components';
 import { useTheme } from '@/design-system/ThemeProvider';
-import { api, type CardDesign, type Pledge } from '@/lib/api';
+import { useI18n } from '@/i18n';
+import type { Pledge } from '@/lib/api';
+import { saveCardContext } from '@/lib/cardDraft';
 import { formatINR } from '@/lib/money';
-import { errorMessage, usePlans } from '@/lib/queries';
+import { usePlans } from '@/lib/queries';
 
-const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
-
-export function ShagunCardUpsell({ pledge, partnerOne, partnerTwo, guestName, message, weddingDate }: {
-  pledge: Pledge; partnerOne: string; partnerTwo: string; guestName?: string; message?: string; weddingDate?: string | null;
+export function ShagunCardUpsell({ pledge, partnerOne, partnerTwo, guestName, message, weddingDate, slug }: {
+  pledge: Pledge; partnerOne: string; partnerTwo: string; guestName?: string; message?: string; weddingDate?: string | null; slug?: string;
 }) {
   const t = useTheme();
-  const plans = usePlans();
-  const offer = plans.data?.shagun_card;
-  const [design, setDesign] = useState<CardDesign>('marigold');
-  const [email, setEmail] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
+  const { t: tx } = useI18n();
+  const offer = usePlans().data?.shagun_card;
   if (!offer?.enabled) return null;
-
-  const buy = async () => {
-    if (!EMAIL.test(email.trim())) { setErr('Enter your email for the receipt.'); return; }
-    setBusy(true); setErr(null);
-    try {
-      const r = await api.cardCheckout(pledge.reference, pledge.token, email.trim(), design);
-      api.track('premium_checkout', { item: 'shagun_card' });
-      if (Platform.OS === 'web') { window.location.href = r.checkout_url; return; }
-      await WebBrowser.openBrowserAsync(r.checkout_url);
-    } catch (e) { setErr(errorMessage(e)); } finally { setBusy(false); }
+  const price = formatINR(offer.price_paise);
+  const names = `${partnerOne} & ${partnerTwo}`;
+  const go = async () => {
+    await saveCardContext({ reference: pledge.reference, token: pledge.token, slug, partnerOne, partnerTwo, weddingDate, guestName, message });
+    router.push('/card/new');
   };
-
+  const samples = ['marigold', 'royal', 'rose', 'peacock', 'mehendi'] as const;
   return (
     <Card style={{ width: '100%', gap: t.space.md }}>
-      <Text variant="label" color={t.colors.highlight}>✦ Make it memorable</Text>
-      <Text variant="heading">Send a Digital Shagun Card</Text>
-      <Text muted variant="caption">A beautiful card with your blessing that {partnerOne} & {partnerTwo} can keep and share. {formatINR(offer.price_paise)} — your UPI gift stays exactly as it is.</Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: t.space.sm }}>
-        {offer.designs.map((d) => <Chip key={d} label={CARD_DESIGNS[d].label} color={CARD_DESIGNS[d].accent} selected={design === d} onPress={() => setDesign(d)} />)}
+      <Text variant="label" color={t.colors.highlight}>{tx('cd_make_memorable')}</Text>
+      <Text variant="heading">{tx('cd_upsell_title')}</Text>
+      <Text muted variant="caption">{tx('cd_upsell_body', { couple: names, price })}</Text>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: t.space.md, paddingVertical: 6 }}>
+        {samples.map((id) => (
+          <View key={id}><ShagunCardView spec={{ template: id, occasion: TEMPLATES.find((x) => x.id === id)!.occasion, palette: 0, lang: 'en', recipient: names, date: weddingDate, from: guestName, blessing: message }} width={150} /></View>
+        ))}
       </ScrollView>
-      <View style={{ alignItems: 'center' }}>
-        <ShagunCardView design={design} from={guestName} message={message} partnerOne={partnerOne} partnerTwo={partnerTwo} date={weddingDate} width={260} />
-      </View>
-      {err ? <Banner tone="negative" title={err} /> : null}
-      <Field label="Email for receipt" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" autoComplete="email" placeholder="you@gmail.com" />
-      <Row><Button title={`Send card · ${formatINR(offer.price_paise)}`} kind="accent" icon="mail-outline" loading={busy} onPress={buy} /></Row>
-      <Text variant="caption" muted style={{ textAlign: 'center' }}>Secure checkout by Dodo Payments (UPI & cards).</Text>
+      <Button title={tx('cd_upsell_cta', { price })} kind="accent" icon="sparkles-outline" onPress={go} />
     </Card>
   );
 }

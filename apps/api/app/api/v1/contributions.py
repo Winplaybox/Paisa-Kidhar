@@ -50,7 +50,8 @@ async def list_contributions(registry_id: str, status: Status | None = None, goa
     where, args = _filters(r["id"], status, goal_id, date_from, date_to)
     rows = await db.fetch(f"""select c.id, c.reference, c.goal_id, g.title goal_title, c.amount_paise, c.currency, c.guest_name,
                                      c.guest_message, c.is_anonymous, c.status, c.created_at, c.marked_paid_at, c.decided_at,
-                                     exists(select 1 from paisa.card_orders k where k.contribution_id=c.id and k.status='succeeded') as card
+                                     exists(select 1 from paisa.card_orders k where k.contribution_id=c.id and k.status='succeeded') as card,
+                                     (select k.id from paisa.card_orders k where k.contribution_id=c.id and k.status='succeeded' limit 1) as card_id
                               from paisa.contributions c join paisa.goals g on g.id=c.goal_id
                               where {where} order by c.created_at desc limit {limit} offset {offset}""", *args)
     total = await db.fetchval(f"select count(*) from paisa.contributions c where {where}", *args)

@@ -5,11 +5,13 @@ import { View } from 'react-native';
 import { GoogleButton } from '@/components/GoogleButton';
 import { Banner, Button, Field, OrDivider, Row, Screen, Text } from '@/design-system/components';
 import { useTheme } from '@/design-system/ThemeProvider';
+import { useI18n } from '@/i18n';
 import { ApiError } from '@/lib/api';
 import { friendlyAuthError, useAuth } from '@/lib/auth';
 
 export default function SignIn() {
   const t = useTheme();
+  const { t: tx } = useI18n();
   const { signInWithPassword } = useAuth();
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
@@ -19,7 +21,7 @@ export default function SignIn() {
 
   const submit = async () => {
     setErr(null);
-    if (identifier.trim().length < 3 || password.length < 6) { setErr('Enter your email or username and password.'); return; }
+    if (identifier.trim().length < 3 || password.length < 6) { setErr(tx('si_err')); return; }
     setBusy(true);
     try {
       await signInWithPassword(identifier, password);
@@ -31,24 +33,24 @@ export default function SignIn() {
 
   return (
     <Screen>
-      <Text variant="title">Welcome back</Text>
-      <Text muted>Sign in with your email or your Paisa Kidhar username.</Text>
+      <Text variant="title">{tx('si_title')}</Text>
+      <Text muted>{tx('si_sub')}</Text>
       {err ? <Banner tone="negative" title={err} /> : null}
       <GoogleButton onError={setErr} />
       <OrDivider />
       <View style={{ gap: t.space.lg }}>
-        <Field label="Email or username" value={identifier} onChangeText={setIdentifier} autoCapitalize="none" autoCorrect={false}
+        <Field label={tx('si_id')} value={identifier} onChangeText={setIdentifier} autoCapitalize="none" autoCorrect={false}
           autoComplete="username" textContentType="username" placeholder="riya@gmail.com or riya_sharma" returnKeyType="next" />
-        <Field label="Password" value={password} onChangeText={setPassword} secureTextEntry={!show} autoComplete="current-password"
+        <Field label={tx('common_password')} value={password} onChangeText={setPassword} secureTextEntry={!show} autoComplete="current-password"
           textContentType="password" placeholder="••••••••" returnKeyType="go" onSubmitEditing={submit} />
         <Row style={{ justifyContent: 'space-between' }}>
-          <Button title={show ? 'Hide password' : 'Show password'} kind="ghost" full={false} onPress={() => setShow((s) => !s)} style={{ paddingHorizontal: 0 }} />
-          <Link href="/forgot" style={{ color: t.colors.accent, fontFamily: t.font.semibold }}>Forgot password?</Link>
+          <Button title={show ? tx('si_hide') : tx('si_show')} kind="ghost" full={false} onPress={() => setShow((s) => !s)} style={{ paddingHorizontal: 0 }} />
+          <Link href="/forgot" style={{ color: t.colors.accent, fontFamily: t.font.semibold }}>{tx('si_forgot')}</Link>
         </Row>
-        <Button title="Sign in" kind="accent" loading={busy} onPress={submit} />
+        <Button title={tx('si_btn')} kind="accent" loading={busy} onPress={submit} />
       </View>
       <Text muted style={{ textAlign: 'center' }}>
-        New here? <Link href="/sign-up" style={{ color: t.colors.accent, fontFamily: t.font.semibold }}>Create an account</Link>
+        {tx('si_new')}<Link href="/sign-up" style={{ color: t.colors.accent, fontFamily: t.font.semibold }}>{tx('si_create')}</Link>
       </Text>
     </Screen>
   );

@@ -131,3 +131,23 @@ def amount_bucket(paise: int) -> str:
 
 
 AMOUNT_BUCKETS = ["≤₹500", "₹501–1k", "₹1k–2k", "₹2k–5k", "₹5k–10k", ">₹10k"]
+
+
+# ---- Digital Shagun Card catalogue (kept in sync with apps/mobile/src/cards/catalog.ts) ----
+CARD_OCCASIONS = ("wedding", "engagement", "anniversary", "birthday", "baby-shower", "housewarming", "festival", "congratulations")
+CARD_TEMPLATES = ("marigold", "rose", "royal", "mehendi", "ivory", "peacock", "engagement", "anniversary", "birthday",
+                  "housewarming", "diwali", "baby-shower", "celestial", "minimal")
+CARD_LANGS = ("en", "hi", "gu", "mr")
+CARD_PALETTES = 4
+_CTRL_RE = re.compile(r"[\x00-\x08\x0b-\x1f\x7f\u200e\u200f\u202a-\u202e\u2066-\u2069]")
+
+
+def clean_text(value: str | None, max_len: int, *, multiline: bool = False) -> str | None:
+    """Normalise user text for a card: strip control/bidi characters, collapse whitespace, cap length; empty -> None."""
+    if value is None:
+        return None
+    s = unicodedata.normalize("NFC", _CTRL_RE.sub("", value))
+    s = re.sub(r"[ \t]+", " ", s)
+    s = re.sub(r"\s*\n\s*", "\n", s) if multiline else re.sub(r"\s+", " ", s)
+    s = s.strip()[:max_len].strip()
+    return s or None
