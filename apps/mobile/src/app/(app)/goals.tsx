@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { View } from 'react-native';
 
 import { ConfettiBurst } from '@/design-system/Anim';
+import { showInterstitial } from '@/lib/ads';
 import { ShareCard } from '@/components/ShareCard';
 import { Banner, Button, Card, EmptyState, ErrorState, IconButton, LoadingList, ProgressBar, Row, Screen, Text } from '@/design-system/components';
 import { useTheme } from '@/design-system/ThemeProvider';
@@ -62,7 +63,7 @@ export default function Goals() {
             onPress={() => publish.mutate(false, { onError: (e) => setErr(errorMessage(e)) })} />
         ) : (
           <Button title="Publish registry" kind="accent" icon="rocket-outline" full={false} loading={publish.isPending}
-            onPress={() => { setErr(null); publish.mutate(true, { onSuccess: () => setCelebrate((n) => n + 1), onError: (e) => setErr(errorMessage(e)) }); }} />
+            onPress={() => { setErr(null); publish.mutate(true, { onSuccess: () => { setCelebrate((n) => n + 1); setTimeout(() => showInterstitial({ premium: r.plan === 'premium' }), 3500); }, onError: (e) => setErr(errorMessage(e)) }); }} />
         )}
         <Button title="Preview" kind="secondary" icon="eye-outline" full={false} onPress={() => router.push(`/r/${r.slug}?preview=1`)} />
       </Row>

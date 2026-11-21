@@ -12,7 +12,11 @@ export const config = {
   webUrl: req('EXPO_PUBLIC_WEB_URL', process.env.EXPO_PUBLIC_WEB_URL, 'https://paisa.winplaybox.in'),
   googleWebClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ?? '',
   adsEnabled: process.env.EXPO_PUBLIC_ADS_ENABLED === 'true',
-  admobBannerId: process.env.EXPO_PUBLIC_ADMOB_BANNER_ID ?? '',
+  admob: {
+    banner: process.env.EXPO_PUBLIC_ADMOB_BANNER_ID ?? '',
+    interstitial: process.env.EXPO_PUBLIC_ADMOB_INTERSTITIAL_ID ?? '',
+    appOpen: process.env.EXPO_PUBLIC_ADMOB_APP_OPEN_ID ?? '',
+  },
   // Play policy: only enable after enrolling in Google Play user-choice/alternative billing for India.
   androidExternalBilling: process.env.EXPO_PUBLIC_ANDROID_EXTERNAL_BILLING === 'true',
   supportEmail: 'support@winplaybox.in',

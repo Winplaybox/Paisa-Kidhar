@@ -4,7 +4,9 @@ import { Tabs } from 'expo-router/js-tabs';
 import type { ComponentProps } from 'react';
 
 import { useTheme } from '@/design-system/ThemeProvider';
+import { useAppOpenAd } from '@/lib/ads';
 import { useAuth } from '@/lib/auth';
+import { useCurrentRegistry } from '@/lib/useCurrentRegistry';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
 const tab = (title: string, icon: IconName, iconActive: IconName) => ({
@@ -15,6 +17,8 @@ const tab = (title: string, icon: IconName, iconActive: IconName) => ({
 export default function AppLayout() {
   const { ready, session } = useAuth();
   const t = useTheme();
+  const cur = useCurrentRegistry();
+  useAppOpenAd(!!session && cur.registry?.plan !== 'premium');
   if (ready && !session) return <Redirect href="/welcome" />;
   return (
     <Tabs
