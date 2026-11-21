@@ -1,4 +1,19 @@
 import type { ExpoConfig } from 'expo/config';
+import { withAndroidManifest, type ConfigPlugin } from 'expo/config-plugins';
+
+// Play infers <uses-feature android.hardware.screen.portrait required=true> from the portrait lock, which
+// hides the app from landscape-only devices (tablets, desktops, XR). Declare it optional.
+const withOptionalPortrait: ConfigPlugin = (config) =>
+  withAndroidManifest(config, (c) => {
+    const m = c.modResults.manifest;
+    const features = (m['uses-feature'] ??= []);
+    for (const name of ['android.hardware.screen.portrait', 'android.hardware.screen.landscape']) {
+      const existing = features.find((f) => f.$['android:name'] === name);
+      if (existing) existing.$['android:required'] = 'false';
+      else features.push({ $: { 'android:name': name, 'android:required': 'false' } });
+    }
+    return c;
+  });
 
 // All values are public (EXPO_PUBLIC_*). Secrets never go in the app bundle.
 const env = process.env;
@@ -94,4 +109,4 @@ const config: ExpoConfig = {
   },
 };
 
-export default config;
+export default withOptionalPortrait(config as never) as ExpoConfig;
