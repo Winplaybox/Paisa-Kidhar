@@ -9,7 +9,7 @@ import { ActivityIndicator, Modal, Platform, Pressable, ScrollView, useWindowDim
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import {
-  CARD_LANGS, OCCASIONS, OCCASION_ICON, OCCASION_LABEL, PALETTE_COUNT, PALETTE_LABEL, TEMPLATES, TEMPLATE_LABEL, paletteFor, pick, templateById,
+  ACTIVE_OCCASIONS, ACTIVE_TEMPLATES, CARD_LANGS, OCCASION_ICON, OCCASION_LABEL, PALETTE_COUNT, PALETTE_LABEL, TEMPLATES, TEMPLATE_LABEL, paletteFor, pick, templateById,
   type CardLang, type Occasion, type TemplateId,
 } from '@/cards/catalog';
 import { defaultBlessing } from '@/cards/copy';
@@ -39,7 +39,7 @@ export default function NewCard() {
   const [ctx, setCtx] = useState<CardContext | null>(null);
   const [editKey, setEditKey] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
-  const [step, setStep] = useState(edit ? 1 : 0);
+  const [step, setStep] = useState(edit || ACTIVE_OCCASIONS.length < 2 ? 1 : 0);
   const [occasion, setOccasion] = useState<Occasion>('wedding');
   const [template, setTemplate] = useState<TemplateId>('marigold');
   const [palette, setPalette] = useState(0);
@@ -119,8 +119,8 @@ export default function NewCard() {
   }
 
   const steps = [tx('cd_step1'), tx('cd_step2'), tx('cd_step3'), tx('cd_step4')];
-  const first = edit ? 1 : 0;
-  const ordered = [...TEMPLATES].sort((a, b) => Number(b.occasion === occasion) - Number(a.occasion === occasion));
+  const first = edit || ACTIVE_OCCASIONS.length < 2 ? 1 : 0;
+  const ordered = [...ACTIVE_TEMPLATES].sort((a, b) => Number(b.occasion === occasion) - Number(a.occasion === occasion));
   const shown = filter === 'all' ? ordered : ordered.filter((x) => x.occasion === filter);
   const next = () => { setErr(null); setStep((s) => Math.min(3, s + 1)); };
   const back = () => { if (step <= first) goBackOr('/'); else setStep((s) => s - 1); };
@@ -133,12 +133,12 @@ export default function NewCard() {
         <Text variant="heading" style={{ flex: 1 }}>{tx('cd_title')}</Text>
       </View>
       <Row gap={6} style={{ paddingHorizontal: t.space.lg, paddingVertical: t.space.sm }}>
-        {steps.map((s, i) => (
+        {steps.map((s, i) => (i < first ? null : (
           <View key={s} style={{ flex: 1, gap: 4 }} accessibilityLabel={`${i + 1}/4 ${s}`}>
             <View style={{ height: 4, borderRadius: 2, backgroundColor: i <= step ? t.colors.accent : t.colors.border }} />
             <Text variant="caption" muted={i !== step} numberOfLines={1}>{s}</Text>
           </View>
-        ))}
+        )))}
       </Row>
 
       <ScrollView contentContainerStyle={{ padding: t.space.lg, gap: t.space.lg, paddingBottom: 120, width: '100%', maxWidth: 900, alignSelf: 'center' }} keyboardShouldPersistTaps="handled">
@@ -148,7 +148,7 @@ export default function NewCard() {
           <>
             <Text variant="title">{tx('cd_pick_occasion')}</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap }}>
-              {OCCASIONS.map((o) => {
+              {ACTIVE_OCCASIONS.map((o) => {
                 const on = o === occasion;
                 return (
                   <Pressable key={o} accessibilityRole="button" accessibilityState={{ selected: on }}
@@ -168,10 +168,10 @@ export default function NewCard() {
           <>
             <Text variant="title">{tx('cd_pick_design')}</Text>
             <Text muted variant="caption">{tx('cd_unlock', { price })}</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: t.space.sm }}>
+            {ACTIVE_OCCASIONS.length > 1 ? <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: t.space.sm }}>
               <Chip label={tx('cd_all')} selected={filter === 'all'} onPress={() => setFilter('all')} />
-              {OCCASIONS.map((o) => <Chip key={o} label={pick(OCCASION_LABEL[o], appLang as CardLang)} selected={filter === o} onPress={() => setFilter(o)} />)}
-            </ScrollView>
+              {ACTIVE_OCCASIONS.map((o) => <Chip key={o} label={pick(OCCASION_LABEL[o], appLang as CardLang)} selected={filter === o} onPress={() => setFilter(o)} />)}
+            </ScrollView> : null}
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap }}>
               {shown.map((x) => {
                 const on = x.id === template;

@@ -53,6 +53,10 @@ export const PALETTE_COUNT = 4;
 export const templateById = (id: string): Template => TEMPLATES.find((t) => t.id === id) ?? TEMPLATES[0];
 export const paletteFor = (id: string, idx: number): Palette => (idx > 0 && idx < PALETTE_COUNT ? SHARED[idx - 1] : templateById(id).base);
 export const isTemplateId = (v: unknown): v is TemplateId => typeof v === 'string' && (TEMPLATE_IDS as readonly string[]).includes(v);
+/** Occasions offered in the creator UI. Only weddings for now (the app is a wedding registry); other templates stay in TEMPLATES so any already-created card still renders. */
+export const ACTIVE_OCCASIONS: readonly Occasion[] = ['wedding'];
+export const ACTIVE_TEMPLATES = TEMPLATES.filter((x) => (ACTIVE_OCCASIONS as readonly string[]).includes(x.occasion));
+
 export const isOccasion = (v: unknown): v is Occasion => typeof v === 'string' && (OCCASIONS as readonly string[]).includes(v);
 export const isCardLang = (v: unknown): v is CardLang => v === 'en' || v === 'hi' || v === 'gu' || v === 'mr';
 
