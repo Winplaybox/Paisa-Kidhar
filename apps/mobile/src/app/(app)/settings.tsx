@@ -3,7 +3,8 @@ import { useEffect, useState } from 'react';
 import { Alert, Linking, Platform } from 'react-native';
 
 import { shareApp } from '@/lib/appShare';
-import { checkStore, fetchOta, startStoreUpdate } from '@/lib/updates';
+import { UpdateRow } from '@/components/UpdateRow';
+import { refreshUpdates } from '@/lib/updates';
 import Constants from 'expo-constants';
 
 import { Banner, Button, Card, Chip, Divider, Field, Row, Screen, Text } from '@/design-system/components';
@@ -51,9 +52,8 @@ export default function Settings() {
   const checkUpdates = async () => {
     if (Platform.OS !== 'android') { setMsg({ tone: 'positive', text: tx('up_latest') }); return; }
     setMsg({ tone: 'positive', text: tx('up_checking') });
-    const store = await checkStore(true);
-    if (store.kind === 'store') { if (!(await startStoreUpdate(store.immediate))) Linking.openURL(config.playUrl).catch(() => {}); return; }
-    if (await fetchOta()) { setMsg({ tone: 'positive', text: tx('up_ota_body') }); return; }
+    const r = await refreshUpdates(true);
+    if (r.kind !== 'none') { setMsg(null); return; }
     setMsg({ tone: 'positive', text: tx('up_latest') });
   };
   const share = async () => { if ((await shareApp()) === 'copied') setMsg({ tone: 'positive', text: tx('share_copied') }); };
@@ -61,6 +61,7 @@ export default function Settings() {
   return (
     <Screen edges={['top']}>
       <Text variant="title">{tx('st_title')}</Text>
+      <UpdateRow />
       {msg ? <Banner tone={msg.tone} title={msg.text} /> : null}
       <Card style={{ gap: t.space.lg }}>
         <Field label={tx('common_name')} value={name} onChangeText={setName} />

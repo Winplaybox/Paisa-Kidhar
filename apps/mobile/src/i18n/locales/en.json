@@ -447,5 +447,10 @@
   "rc_ann_open": "Learn more",
   "rc_dismiss": "Dismiss",
   "up_force_min": "Please update to the latest version to keep using Paisa Kidhar.",
-  "pw_leaked": "This password has appeared in a data breach. Please choose a different one."
+  "pw_leaked": "This password has appeared in a data breach. Please choose a different one.",
+  "up_relaunch_title": "Re-launch required",
+  "up_relaunch_sub": "To install the new version",
+  "up_relaunch": "Re-launch",
+  "up_downloading": "Downloading…",
+  "up_row_sub": "A new version is ready on Google Play"
 }

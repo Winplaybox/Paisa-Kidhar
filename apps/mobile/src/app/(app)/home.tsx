@@ -4,6 +4,7 @@ import { RefreshControl, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ShareCard } from '@/components/ShareCard';
+import { UpdateRow } from '@/components/UpdateRow';
 import { AreaChart, Donut, GoalBars, Histogram } from '@/design-system/charts';
 import { Banner, Button, Card, Chip, EmptyState, ErrorState, LoadingList, ProgressBar, Row, Stat, Text } from '@/design-system/components';
 import { useTheme } from '@/design-system/ThemeProvider';
@@ -127,6 +128,7 @@ export default function Home() {
         contentContainerStyle={{ padding: t.space.lg, gap: t.space.lg, paddingBottom: t.space.xxxl, maxWidth: 760, width: '100%', alignSelf: 'center' }}
         refreshControl={<RefreshControl refreshing={false} onRefresh={() => { cur.refetch(); ins.refetch(); }} tintColor={t.colors.accent} />}
       >
+        <UpdateRow />
         {body()}
       </ScrollView>
     </SafeAreaView>
