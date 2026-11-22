@@ -80,9 +80,13 @@ def create_app(settings: Settings | None = None, *, pool_factory=None, http_fact
         # Only the Android app announces itself; web and server-to-server callers (webhooks) are rate-limited instead.
         mode = settings.app_check_mode
         if mode != "off" and request.headers.get("x-client-platform") == "android" and request.url.path.startswith("/v1/"):
-            ok = await app.state.appcheck.verify(request.headers.get("x-firebase-appcheck", ""))
-            if not ok:
-                access.warning("app_check_failed", extra={"path": request.url.path, "mode": mode})
+            token = request.headers.get("x-firebase-appcheck", "")
+            ok = await app.state.appcheck.verify(token) if token else False
+            # One greppable line per outcome so the rollout can be judged from logs: app_check_ok vs app_check_missing/app_check_failed.
+            if ok:
+                access.info("app_check_ok", extra={"path": request.url.path})
+            else:
+                access.warning("app_check_missing" if not token else "app_check_failed", extra={"path": request.url.path, "mode": mode})
                 if mode == "enforce":
                     return JSONResponse({"error": {"code": "app_check", "message": "Please update Paisa Kidhar from Google Play."}}, status_code=403)
         return await call_next(request)

@@ -1,4 +1,5 @@
 import { Link, router } from 'expo-router';
+import { isLeakedPassword } from '@/lib/pwned';
 import { useState } from 'react';
 import { View } from 'react-native';
 
@@ -33,6 +34,7 @@ export default function SignUp() {
     if (!valid) { setErr(tx('su_fix')); return; }
     setBusy(true);
     try {
+      if (await isLeakedPassword(password)) { setErr(tx('pw_leaked')); return; }
       const res = await signUp(name, email, password);
       if (res === 'confirm_email') setSent(true);
       else router.replace('/home');

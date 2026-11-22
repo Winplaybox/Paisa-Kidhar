@@ -446,5 +446,6 @@
   "rc_retry": "Try again",
   "rc_ann_open": "Learn more",
   "rc_dismiss": "Dismiss",
-  "up_force_min": "Please update to the latest version to keep using Paisa Kidhar."
+  "up_force_min": "Please update to the latest version to keep using Paisa Kidhar.",
+  "pw_leaked": "This password has appeared in a data breach. Please choose a different one."
 }
