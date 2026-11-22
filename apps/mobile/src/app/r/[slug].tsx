@@ -11,6 +11,7 @@ import QRCode from 'react-native-qrcode-svg';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ShagunCardUpsell } from '@/components/ShagunCardUpsell';
+import { useRemoteConfig } from '@/lib/remoteConfig';
 import { Anim, ConfettiBurst } from '@/design-system/Anim';
 import { FluidBackground } from '@/design-system/FluidBackground';
 import { BackButton } from '@/design-system/BackButton';
@@ -32,6 +33,7 @@ const isMobileWeb = () => Platform.OS === 'web' && typeof navigator !== 'undefin
 export default function PublicRegistryScreen() {
   const { slug, preview } = useLocalSearchParams<{ slug: string; preview?: string }>();
   const { t: tx } = useI18n();
+  const flags = useRemoteConfig().flags;
   const q = useQuery({ queryKey: ['public', slug], queryFn: () => api.publicRegistry(slug), retry: 1 });
   const t = useTheme(q.data?.theme);
   const cats = useCategories();
@@ -245,8 +247,8 @@ export default function PublicRegistryScreen() {
           <Text muted style={{ textAlign: 'center' }}>{tx('gp_thanks_body', { couple, amt: formatINR(pledge.amount_paise), goal: pledge.goal_title })}</Text>
           <PayProgress t={t} active={status === 'confirmed' ? 4 : 3} />
           <Card tone="alt"><Text variant="caption" muted>{tx('gp_reference')}</Text><Text variant="heading" selectable>{pledge.reference}</Text></Card>
-          <ShagunCardUpsell pledge={pledge} partnerOne={r.partner_one} partnerTwo={r.partner_two} guestName={anon ? undefined : name.trim() || undefined}
-            message={message.trim() || undefined} weddingDate={r.wedding_date} slug={r.slug} />
+          {flags.shagun_cards ? <ShagunCardUpsell pledge={pledge} partnerOne={r.partner_one} partnerTwo={r.partner_two} guestName={anon ? undefined : name.trim() || undefined}
+            message={message.trim() || undefined} weddingDate={r.wedding_date} slug={r.slug} /> : null}
           <Button title={tx('gp_back_registry')} kind="secondary" full={false} onPress={reset} />
         </View>
       ) : null}

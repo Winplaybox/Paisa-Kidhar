@@ -1,7 +1,8 @@
 """Platform admin. Role comes only from paisa.user_roles (granted via SQL editor), never from user metadata."""
 from __future__ import annotations
 
-from typing import Literal
+import re
+from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
@@ -62,3 +63,22 @@ async def moderate(registry_id: str, body: ModerationIn, admin: Identity = Depen
 async def audit_log(limit: int = Query(100, le=500), admin: Identity = Depends(require_admin), db=Depends(pool)):
     rows = await db.fetch("select * from paisa.audit_logs order by created_at desc limit $1", limit)
     return {"items": [rec(r) for r in rows]}
+
+
+class ConfigIn(BaseModel):
+    value: Any
+
+
+@router.put("/config/{key}")
+async def set_config(key: str, body: ConfigIn, admin: Identity = Depends(require_admin), db=Depends(pool)):
+    """Change a server-driven app setting live (announcement, flags, min_version, maintenance, legal)."""
+    import json
+    if not re.fullmatch(r"[a-z_]{1,40}", key) or key not in {"announcement", "maintenance", "min_version", "flags", "legal"}:
+        raise NotFound("Unknown config key.")
+    if len(json.dumps(body.value)) > 60_000:
+        from ...core.errors import AppError
+        raise AppError("Config value too large.", status=422, code="config_too_large")
+    await db.execute("""insert into paisa.app_config(key, value) values ($1, $2::jsonb)
+                        on conflict (key) do update set value = excluded.value, updated_at = now()""", key, json.dumps(body.value))
+    await audit(db, admin.user_id, "admin.config_set", "app_config", key, {})
+    return {"ok": True}

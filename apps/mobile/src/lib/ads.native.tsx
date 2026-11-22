@@ -7,6 +7,7 @@ import mobileAds, { AdEventType, AdsConsent, AppOpenAd, BannerAd, BannerAdSize, 
 
 import { t as tr } from '@/i18n';
 import { config } from './config';
+import { getFlags } from '@/lib/remoteConfig';
 
 let initPromise: Promise<boolean> | null = null;
 const REQ = { requestNonPersonalizedAdsOnly: true };
@@ -31,8 +32,8 @@ function init(): Promise<boolean> {
 
 export function AdBanner({ hidden }: { hidden?: boolean }) {
   const [ok, setOk] = useState(false);
-  useEffect(() => { if (config.adsEnabled && !hidden) init().then(setOk); }, [hidden]);
-  if (!config.adsEnabled || hidden || !ok) return null;
+  useEffect(() => { if ((config.adsEnabled && getFlags().ads) && !hidden) init().then(setOk); }, [hidden]);
+  if (!(config.adsEnabled && getFlags().ads) || hidden || !ok) return null;
   return (
     <View style={{ alignItems: 'center', marginTop: 8 }} accessibilityLabel={tr('cm_ad')}>
       <BannerAd unitId={unit(config.admob.banner, TestIds.ADAPTIVE_BANNER)} size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER} requestOptions={REQ} />
@@ -44,7 +45,7 @@ export function AdBanner({ hidden }: { hidden?: boolean }) {
 const INTERSTITIAL_GAP_MS = 5 * 60 * 1000;
 let lastInterstitial = 0;
 export async function showInterstitial(opts: { premium?: boolean } = {}) {
-  if (!config.adsEnabled || opts.premium || Date.now() - lastInterstitial < INTERSTITIAL_GAP_MS) return;
+  if (!(config.adsEnabled && getFlags().ads) || opts.premium || Date.now() - lastInterstitial < INTERSTITIAL_GAP_MS) return;
   if (!(await init())) return;
   const ad = InterstitialAd.createForAdRequest(unit(config.admob.interstitial, TestIds.INTERSTITIAL), REQ);
   const offLoad = ad.addAdEventListener(AdEventType.LOADED, () => { lastInterstitial = Date.now(); ad.show().catch(() => {}); offLoad(); });
@@ -55,7 +56,7 @@ export async function showInterstitial(opts: { premium?: boolean } = {}) {
 const APP_OPEN_GAP_MS = 4 * 60 * 60 * 1000;
 export function useAppOpenAd(enabled: boolean) {
   useEffect(() => {
-    if (!config.adsEnabled || !enabled) return;
+    if (!(config.adsEnabled && getFlags().ads) || !enabled) return;
     let last = Date.now();
     let state = AppState.currentState;
     const sub = AppState.addEventListener('change', async (next) => {

@@ -9,6 +9,7 @@ import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { formatINRCompact } from '@/lib/money';
 import { errorMessage } from '@/lib/queries';
+import { AdminControls } from '@/components/AdminControls';
 
 export default function Admin() {
   const t = useTheme();
@@ -40,6 +41,7 @@ export default function Admin() {
         <Text variant="heading">Weekly sign-ups</Text>
         {m.data!.weekly_signups.map((w) => <Row key={w.week} style={{ justifyContent: 'space-between' }}><Text variant="caption">{w.week}</Text><Text variant="label">{w.n}</Text></Row>)}
       </Card>
+      <AdminControls />
       <Field label="Search registries" value={search} onChangeText={setSearch} placeholder="slug, names or username" autoCapitalize="none" />
       {regs.data?.items.map((r) => (
         <Card key={r.id}>

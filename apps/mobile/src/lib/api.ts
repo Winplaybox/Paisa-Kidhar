@@ -146,6 +146,7 @@ export const api = {
 
   adminMetrics: () => request<AdminMetrics>('/v1/admin/metrics'),
   adminRegistries: (qs: string) => request<{ items: (Registry & { owner_username: string })[] }>(`/v1/admin/registries${q({ q: qs })}`),
+  adminSetConfig: (key: string, value: unknown) => request(`/v1/admin/config/${key}`, { method: 'PUT', body: { value } }),
   moderate: (id: string, action: 'hide' | 'unhide') => request(`/v1/admin/registries/${id}/moderation`, { method: 'POST', body: { action } }),
 
   track: (name: string, props: Record<string, string | number | boolean> = {}) => {
