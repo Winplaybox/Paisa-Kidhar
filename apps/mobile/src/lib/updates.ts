@@ -65,3 +65,48 @@ export function onStoreDownloaded(cb: () => void): () => void {
   if (!enabled) return () => {};
   try { return inApp().addUpdateListener('updateDownloaded', (e) => { if (e.readyToInstall) cb(); }); } catch { return () => {}; }
 }
+
+// ---- Shared update state: one source for the force dialog, the Home banner and the Settings row. ----
+export type UpdateUi =
+  | { kind: 'none' }
+  | { kind: 'store'; storeVersion: string; force: boolean; immediate: boolean }
+  | { kind: 'downloading' }
+  | { kind: 'ready_store' }
+  | { kind: 'ready_ota' };
+
+let ui: UpdateUi = { kind: 'none' };
+const subs = new Set<() => void>();
+const setUi = (n: UpdateUi) => { ui = n; subs.forEach((f) => f()); };
+export const subscribeUpdate = (f: () => void) => { subs.add(f); return () => { subs.delete(f); }; };
+export const getUpdateUi = () => ui;
+
+let listening = false;
+function listen() {
+  if (listening || !enabled) return;
+  listening = true;
+  onStoreDownloaded(() => setUi({ kind: 'ready_store' }));
+  try { inApp().addUpdateListener('updateCancelled', () => { if (ui.kind === 'downloading') void refreshUpdates(true); }); } catch { /* non-fatal */ }
+}
+
+/** Re-checks Play + OTA and publishes the result. A forced store update outranks everything; otherwise prefer the instant OTA fix. */
+export async function refreshUpdates(manual = false): Promise<UpdateUi> {
+  if (!enabled) return ui;
+  listen();
+  if (ui.kind === 'downloading' || ui.kind === 'ready_store') return ui; // don't clobber an in-flight / finished download
+  const store = await checkStore(manual);
+  if (store.kind === 'store' && store.force) { setUi(store); return ui; }
+  if (await fetchOta()) { setUi({ kind: 'ready_ota' }); return ui; }
+  setUi(store.kind === 'store' ? store : { kind: 'none' });
+  return ui;
+}
+
+/** Row button: starts the Play flow (shows "Downloading…"), installs a finished download, or restarts into an OTA bundle. */
+export async function actOnUpdate(playUrlFallback: () => void) {
+  const cur = ui;
+  if (cur.kind === 'ready_ota') { await applyOta(); return; }
+  if (cur.kind === 'ready_store') { await startStoreUpdate(false); return; }
+  if (cur.kind !== 'store') return;
+  if (cur.immediate) { if (!(await startStoreUpdate(true))) playUrlFallback(); return; }
+  setUi({ kind: 'downloading' });
+  if (!(await startStoreUpdate(false))) { setUi(cur); playUrlFallback(); }
+}
