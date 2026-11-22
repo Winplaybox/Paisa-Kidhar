@@ -118,7 +118,7 @@ Everything below is live for all users within ~1 minute (the app refetches `/v1/
 | Legal text (privacy/terms/delete-account, per language) | `PUT /v1/admin/config/legal` with `{"value": {"updated": "22 November 2026", "privacy": {"en": "...", "hi": "..."}}}` (admin bearer token); omit a key to fall back to the bundled text |
 
 JS/UI changes that are not config: publish an OTA update with the **Publish production OTA update** EAS workflow
-(`.eas/workflows/publish-update.yml`, run it on `main`). Native changes (new permissions, new native modules, SDK bump) always need a new AAB.
+(`apps/mobile/.eas/workflows/publish-update.yml`, run it on `main`). Native changes (new permissions, new native modules, SDK bump) always need a new AAB.
 
 ### Web deploy (Hostinger static) — what works from the sandbox
 1. `npx expo export --platform web --output-dir ../../dist-web`, copy `docs/hostinger.htaccess` to `dist-web/.htaccess`, zip, push the zip to the `web-dist-archive` branch.
