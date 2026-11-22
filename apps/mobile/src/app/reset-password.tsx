@@ -1,4 +1,5 @@
 import { router } from 'expo-router';
+import { isLeakedPassword } from '@/lib/pwned';
 import { useState } from 'react';
 
 import { Banner, Button, Field, Screen, Text } from '@/design-system/components';
@@ -25,6 +26,7 @@ export default function ResetPassword() {
       <Button title={tx('rp_save')} kind="accent" loading={busy} onPress={async () => {
         if (!STRONG(pw)) { setErr(tx('rp_rule_err')); return; }
         setBusy(true); setErr(null);
+        if (await isLeakedPassword(pw)) { setBusy(false); setErr(tx('pw_leaked')); return; }
         const { error } = await supabase.auth.updateUser({ password: pw });
         setBusy(false);
         if (error) setErr(friendlyAuthError(error)); else router.replace('/home');
