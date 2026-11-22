@@ -440,5 +440,11 @@
   "rt_plum": "बैंगनी",
   "rt_marigold": "गेंदा",
   "rt_emerald": "पन्ना",
-  "rt_ink": "स्याही"
+  "rt_ink": "स्याही",
+  "rc_maint_title": "जल्द वापस आएंगे",
+  "rc_maint_default": "हम Paisa Kidhar को बेहतर बना रहे हैं। कृपया थोड़ी देर बाद कोशिश करें।",
+  "rc_retry": "फिर कोशिश करें",
+  "rc_ann_open": "और जानें",
+  "rc_dismiss": "बंद करें",
+  "up_force_min": "Paisa Kidhar चलाते रहने के लिए कृपया ऐप का नया वर्ज़न अपडेट करें।"
 }

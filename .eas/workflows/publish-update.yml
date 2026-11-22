@@ -1,0 +1,11 @@
+# Manual OTA release: run from the Expo MCP/dashboard on `main` (or `eas workflow:run publish-update.yml`).
+# Reaches installed apps with the same runtimeVersion (app version) on the `production` channel, no Play review.
+name: Publish production OTA update
+
+jobs:
+  publish_update:
+    name: Publish OTA update
+    type: update
+    params:
+      branch: production
+      message: OTA from workflow

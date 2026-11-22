@@ -15,8 +15,10 @@ import { useAuth } from '@/lib/auth';
 import { config } from '@/lib/config';
 import { errorMessage } from '@/lib/queries';
 import { useQueryClient } from '@tanstack/react-query';
+import { useRemoteConfig } from '@/lib/remoteConfig';
 
 export default function Settings() {
+  const flags = useRemoteConfig().flags;
   const { profile, signOut } = useAuth();
   const { pref, setPref, theme: t } = useThemeCtx();
   const { t: tx, lang, setLang } = useI18n();
@@ -85,13 +87,13 @@ export default function Settings() {
 
       <Card>
         <Text variant="heading">{tx('st_about')}</Text>
-        <Button title={tx('st_rate')} kind="ghost" icon="star-outline" full={false} onPress={() => router.push('/feedback')} />
+        {flags.feedback ? <Button title={tx('st_rate')} kind="ghost" icon="star-outline" full={false} onPress={() => router.push('/feedback')} /> : null}
         <Button title={tx('st_share')} kind="ghost" icon="share-social-outline" full={false} onPress={share} />
         <Button title={tx('st_check_updates')} kind="ghost" icon="refresh-outline" full={false} onPress={checkUpdates} />
       </Card>
 
       <Card>
-        <Button title={tx('st_premium')} kind="ghost" icon="diamond-outline" full={false} onPress={() => router.push('/premium')} />
+        {flags.premium ? <Button title={tx('st_premium')} kind="ghost" icon="diamond-outline" full={false} onPress={() => router.push('/premium')} /> : null}
         {profile?.is_admin ? <Button title={tx('st_admin')} kind="ghost" icon="shield-checkmark-outline" full={false} onPress={() => router.push('/admin')} /> : null}
         <Button title={tx('legal_privacy')} kind="ghost" icon="lock-closed-outline" full={false} onPress={() => router.push('/legal/privacy')} />
         <Button title={tx('legal_terms')} kind="ghost" icon="document-text-outline" full={false} onPress={() => router.push('/legal/terms')} />

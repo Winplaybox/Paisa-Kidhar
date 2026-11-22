@@ -409,3 +409,20 @@ async def test_app_feedback(client):
     assert (await client.post("/v1/public/feedback", json={"rating": 0})).status_code == 422
     assert (await client.post("/v1/public/feedback", json={"rating": 4, "platform": "tv"})).status_code == 422
     assert (await client.post("/v1/public/feedback", json={"rating": 4, "email": "nope"})).status_code == 422
+
+
+async def test_app_config_public_and_admin_set(client, make_user, admin_conn):
+    r = await client.get("/v1/public/config")
+    assert r.status_code == 200
+    cfg = r.json()
+    assert cfg["maintenance"]["on"] is False and cfg["flags"]["shagun_cards"] is True and "android" in cfg["min_version"]
+    assert r.headers["cache-control"].startswith("public")
+    u = await make_user()
+    await client.get("/v1/me", headers=u["h"])
+    body = {"value": {"active": True, "id": "a1", "level": "info", "text": {"en": "Hello", "hi": "नमस्ते"}, "url": None}}
+    assert (await client.put("/v1/admin/config/announcement", json=body, headers=u["h"])).status_code == 403
+    await admin_conn.execute("insert into paisa.user_roles(user_id, role) values ($1::uuid,'admin')", u["id"])
+    assert (await client.put("/v1/admin/config/announcement", json=body, headers=u["h"])).json() == {"ok": True}
+    assert (await client.put("/v1/admin/config/not_a_key", json={"value": 1}, headers=u["h"])).status_code == 404
+    got = (await client.get("/v1/public/config")).json()
+    assert got["announcement"]["active"] is True and got["announcement"]["text"]["hi"] == "नमस्ते"

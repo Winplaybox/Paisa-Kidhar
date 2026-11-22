@@ -104,3 +104,24 @@ Then: copy the Play app-signing SHA-256 into `apps/mobile/public/.well-known/ass
   4–5 = blocking immediate update** (use 5 when an old build would break against the API). Works only for Play-installed builds.
 - Settings → *Check for updates* runs both checks on demand. Rate/feedback (`/feedback`) posts to `POST /v1/public/feedback`
   (table `paisa.app_feedback`, read it in the Supabase dashboard).
+
+## Change the app from the backend (no Play release)
+
+Everything below is live for all users within ~1 minute (the app refetches `/v1/public/config` on open and on resume):
+
+| What | How |
+|---|---|
+| Announcement banner (4 languages, optional link) | In the app: Profile → Admin → **App controls (live)** → Publish announcement |
+| Maintenance mode (blocks the app with a message) | Same card → Maintenance ON/OFF |
+| Force update (minimum Android version) | Same card → Minimum version (e.g. `1.0.1`); older apps see a blocking "Update" screen linking to Play |
+| Feature flags (`shagun_cards`, `premium`, `feedback`, `ads`) | Same card → tap a flag |
+| Legal text (privacy/terms/delete-account, per language) | `PUT /v1/admin/config/legal` with `{"value": {"updated": "22 November 2026", "privacy": {"en": "...", "hi": "..."}}}` (admin bearer token); omit a key to fall back to the bundled text |
+
+JS/UI changes that are not config: publish an OTA update with the **Publish production OTA update** EAS workflow
+(`.eas/workflows/publish-update.yml`, run it on `main`). Native changes (new permissions, new native modules, SDK bump) always need a new AAB.
+
+### Web deploy (Hostinger static) — what works from the sandbox
+1. `npx expo export --platform web --output-dir ../../dist-web`, copy `docs/hostinger.htaccess` to `dist-web/.htaccess`, zip, push the zip to the `web-dist-archive` branch.
+2. Get upload credentials with `hosting_files_generate-upload-url` (Hostinger connector).
+3. Upload from a browser tab on `https://hpanel.hostinger.com/` (TUS endpoint only allows that CORS origin): fetch the zip from raw.githubusercontent.com, `POST` then `PATCH` to `<url>/site.zip?override=true` with `X-Auth`, `X-Auth-Rest`, `Tus-Resumable: 1.0.0`.
+4. `hosting_websites_deploy-static-site-archive` with `archive_path: <zip>`.

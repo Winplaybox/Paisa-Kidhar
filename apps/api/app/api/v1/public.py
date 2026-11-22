@@ -4,7 +4,7 @@ from __future__ import annotations
 import datetime as dt
 
 import asyncpg
-from fastapi import APIRouter, Depends, Header, Request
+from fastapi import APIRouter, Depends, Header, Request, Response
 from pydantic import BaseModel, Field
 
 from ... import domain
@@ -297,3 +297,25 @@ async def send_feedback(body: FeedbackIn, db=Depends(pool)):
         "insert into paisa.app_feedback (rating, message, email, app_version, platform, lang) values ($1,$2,$3,$4,$5,$6)",
         body.rating, message or None, body.email, body.app_version, body.platform, body.lang)
     return {"ok": True}
+
+
+CONFIG_DEFAULTS = {
+    "announcement": {"active": False, "id": "none", "level": "info", "text": {"en": ""}, "url": None},
+    "maintenance": {"on": False, "text": {"en": ""}},
+    "min_version": {"android": "1.0.0"},
+    "flags": {"shagun_cards": True, "premium": True, "feedback": True, "ads": True},
+    "legal": {},
+}
+
+
+@router.get("/config", dependencies=[rate_limit("config", 120, 60)])
+async def app_config(response: Response, db=Depends(pool)):
+    """Server-driven app config (announcement, flags, force-update, maintenance, legal text overrides)."""
+    import json
+    rows = await db.fetch("select key, value from paisa.app_config")
+    out = {k: v for k, v in CONFIG_DEFAULTS.items()}
+    for r in rows:
+        v = r["value"]
+        out[r["key"]] = json.loads(v) if isinstance(v, str) else v
+    response.headers["Cache-Control"] = "public, max-age=60"
+    return out

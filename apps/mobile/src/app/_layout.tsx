@@ -12,6 +12,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { BackButton } from '@/design-system/BackButton';
 import { ThemeProvider, useTheme } from '@/design-system/ThemeProvider';
 import { AuthProvider } from '@/lib/auth';
+import { RemoteGate } from '@/components/RemoteGate';
 import { UpdateGate } from '@/components/UpdateGate';
 import { initLanguage, useI18n } from '@/i18n';
 import { initFirebase } from '@/lib/firebase';
@@ -57,6 +58,7 @@ function Shell() {
         <Stack.Screen name="reset-password" options={{ title: tx('nav_new_password') }} />
       </Stack>
       <UpdateGate />
+      <RemoteGate />
     </>
   );
 }

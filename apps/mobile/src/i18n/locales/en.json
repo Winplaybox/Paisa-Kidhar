@@ -440,5 +440,11 @@
   "rt_plum": "Plum",
   "rt_marigold": "Marigold",
   "rt_emerald": "Emerald",
-  "rt_ink": "Ink"
+  "rt_ink": "Ink",
+  "rc_maint_title": "Back soon",
+  "rc_maint_default": "We are making Paisa Kidhar better. Please try again shortly.",
+  "rc_retry": "Try again",
+  "rc_ann_open": "Learn more",
+  "rc_dismiss": "Dismiss",
+  "up_force_min": "Please update to the latest version to keep using Paisa Kidhar."
 }
