@@ -250,6 +250,12 @@ export default function PublicRegistryScreen() {
           {flags.shagun_cards ? <ShagunCardUpsell pledge={pledge} partnerOne={r.partner_one} partnerTwo={r.partner_two} guestName={anon ? undefined : name.trim() || undefined}
             message={message.trim() || undefined} weddingDate={r.wedding_date} slug={r.slug} /> : null}
           <Button title={tx('gp_back_registry')} kind="secondary" full={false} onPress={reset} />
+          <Card tone="accent" style={{ gap: t.space.sm, alignItems: 'center' }}>
+            <Text variant="heading" style={{ textAlign: 'center' }}>{tx('gp_viral_title')}</Text>
+            <Text muted style={{ textAlign: 'center' }}>{tx('gp_viral_body')}</Text>
+            <Button title={tx('gp_viral_btn')} kind="primary" icon="logo-google-playstore" full={false}
+              onPress={() => { api.track('share_tapped', { via: 'guest_viral_cta' }); Linking.openURL(config.playUrl).catch(() => {}); }} />
+          </Card>
         </View>
       ) : null}
 
