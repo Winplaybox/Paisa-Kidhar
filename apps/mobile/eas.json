@@ -7,10 +7,10 @@
     "base": {
       "node": "22.23.5",
       "env": {
-        "EXPO_PUBLIC_SUPABASE_URL": "https://xatbfyiytcnogfbtfsym.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://hjnqoppidztraivujyii.supabase.co",
         "EXPO_PUBLIC_WEB_URL": "https://paisa.winplaybox.in",
-        "EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_QpEcKrru1S6jW-k6llv30Q_4mV1QXO7",
-        "EXPO_PUBLIC_API_URL": "https://paisa-kidhar-registry-api.onrender.com",
+        "EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "sb_publishable__gsdneke9R6DhMRpcHeW-Q_O0J_jpJj",
+        "EXPO_PUBLIC_API_URL": "https://paisa-api.winplaybox.in",
         "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "239411206040-1rj5nc3o4tcpr7soop3cc2ur8puao88b.apps.googleusercontent.com",
         "EXPO_PUBLIC_ADS_ENABLED": "true",
         "EXPO_PUBLIC_ANDROID_EXTERNAL_BILLING": "false",

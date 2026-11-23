@@ -6,9 +6,9 @@ function req(name: string, value: string | undefined, fallback?: string): string
 }
 
 export const config = {
-  supabaseUrl: req('EXPO_PUBLIC_SUPABASE_URL', process.env.EXPO_PUBLIC_SUPABASE_URL, 'https://xatbfyiytcnogfbtfsym.supabase.co'),
-  supabaseKey: req('EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY', process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY, 'sb_publishable_QpEcKrru1S6jW-k6llv30Q_4mV1QXO7'),
-  apiUrl: req('EXPO_PUBLIC_API_URL', process.env.EXPO_PUBLIC_API_URL, 'https://paisa-kidhar-registry-api.onrender.com'),
+  supabaseUrl: req('EXPO_PUBLIC_SUPABASE_URL', process.env.EXPO_PUBLIC_SUPABASE_URL, 'https://hjnqoppidztraivujyii.supabase.co'),
+  supabaseKey: req('EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY', process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY, 'sb_publishable__gsdneke9R6DhMRpcHeW-Q_O0J_jpJj'),
+  apiUrl: req('EXPO_PUBLIC_API_URL', process.env.EXPO_PUBLIC_API_URL, 'https://paisa-api.winplaybox.in'),
   webUrl: req('EXPO_PUBLIC_WEB_URL', process.env.EXPO_PUBLIC_WEB_URL, 'https://paisa.winplaybox.in'),
   googleWebClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ?? '',
   adsEnabled: process.env.EXPO_PUBLIC_ADS_ENABLED === 'true',
