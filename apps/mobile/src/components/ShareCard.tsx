@@ -1,6 +1,6 @@
 import * as Clipboard from 'expo-clipboard';
 import { useState } from 'react';
-import { Platform, Share, View } from 'react-native';
+import { Linking, Platform, Share, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 
 import { Button, Card, Row, Text } from '@/design-system/components';
@@ -28,7 +28,12 @@ export function ShareCard({ registry }: { registry: Registry }) {
         </View>
       </Row>
       <Row gap={t.space.sm} wrap>
-        <Button title={tx('sc_share')} kind="accent" icon="share-social-outline" full={false} onPress={async () => {
+        <Button title={tx('sc_whatsapp')} kind="primary" icon="logo-whatsapp" full={false} onPress={async () => {
+          api.track('share_tapped', { via: 'whatsapp' });
+          const text = encodeURIComponent(message);
+          try { await Linking.openURL(`whatsapp://send?text=${text}`); } catch { await Linking.openURL(`https://wa.me/?text=${text}`).catch(() => {}); }
+        }} />
+        <Button title={tx('sc_share')} kind="secondary" icon="share-social-outline" full={false} onPress={async () => {
           api.track('share_tapped', { via: 'sheet' });
           if (Platform.OS === 'web' && typeof navigator !== 'undefined' && !('share' in navigator)) {
             await Clipboard.setStringAsync(message); setCopied(true); return;
