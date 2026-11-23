@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Alert, Linking, Platform } from 'react-native';
 
-import { shareApp } from '@/lib/appShare';
+import { openStoreListing, shareApp } from '@/lib/appShare';
 import { UpdateRow } from '@/components/UpdateRow';
 import { refreshUpdates } from '@/lib/updates';
 import Constants from 'expo-constants';
@@ -88,7 +88,7 @@ export default function Settings() {
 
       <Card>
         <Text variant="heading">{tx('st_about')}</Text>
-        {flags.feedback ? <Button title={tx('st_rate')} kind="ghost" icon="star-outline" full={false} onPress={() => router.push('/feedback')} /> : null}
+        <Button title={tx('st_rate')} kind="ghost" icon="star-outline" full={false} onPress={() => { void openStoreListing(); }} />
         <Button title={tx('st_share')} kind="ghost" icon="share-social-outline" full={false} onPress={share} />
         <Button title={tx('st_check_updates')} kind="ghost" icon="refresh-outline" full={false} onPress={checkUpdates} />
       </Card>
