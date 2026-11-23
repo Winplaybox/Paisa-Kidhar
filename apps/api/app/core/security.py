@@ -22,28 +22,51 @@ class Identity:
     name: str | None
 
 
+class _Issuer:
+    """Verification material for one Supabase project."""
+
+    def __init__(self, base_url: str, hs_secret: str):
+        self.issuer = f"{base_url}/auth/v1"
+        self.hs_secret = hs_secret
+        self.jwks = jwt.PyJWKClient(f"{base_url}/auth/v1/.well-known/jwks.json", cache_keys=True, lifespan=3600)
+
+
 class JwtVerifier:
-    """One per process (created in lifespan). Supports JWKS (asymmetric) and legacy HS256 projects."""
+    """One per process (created in lifespan). Supports JWKS (asymmetric) and legacy HS256 projects.
+
+    During a project move it also accepts the previous project's sessions (legacy_supabase_url). The
+    token's own `iss` only selects which configured issuer to verify against; the signature and the
+    issuer are still checked, so an unknown issuer is rejected.
+    """
 
     def __init__(self, settings: Settings):
-        self._settings = settings
-        self._jwks = jwt.PyJWKClient(f"{settings.supabase_url}/auth/v1/.well-known/jwks.json", cache_keys=True, lifespan=3600)
-        self._issuer = f"{settings.supabase_url}/auth/v1"
+        self._issuers: dict[str, _Issuer] = {}
+        primary = _Issuer(settings.supabase_url, settings.supabase_jwt_secret)
+        self._issuers[primary.issuer] = primary
+        if settings.legacy_supabase_url:
+            legacy = _Issuer(settings.legacy_supabase_url, settings.legacy_supabase_jwt_secret)
+            self._issuers[legacy.issuer] = legacy
+        self._primary = primary
+
+    def _select(self, token: str) -> _Issuer:
+        iss = jwt.decode(token, options={"verify_signature": False}).get("iss")
+        return self._issuers.get(iss, self._primary)
 
     async def verify(self, token: str) -> Identity:
         try:
             header = jwt.get_unverified_header(token)
             alg = header.get("alg", "")
+            issuer = self._select(token)
             if alg == "HS256":
-                if not self._settings.supabase_jwt_secret:
+                if not issuer.hs_secret:
                     raise Unauthorized("Session not accepted.")
-                key = self._settings.supabase_jwt_secret
+                key = issuer.hs_secret
             elif alg in ("RS256", "ES256"):
-                signing_key = await asyncio.to_thread(self._jwks.get_signing_key_from_jwt, token)
+                signing_key = await asyncio.to_thread(issuer.jwks.get_signing_key_from_jwt, token)
                 key = signing_key.key
             else:
                 raise Unauthorized("Session not accepted.")
-            claims = jwt.decode(token, key, algorithms=[alg], audience="authenticated", issuer=self._issuer,
+            claims = jwt.decode(token, key, algorithms=[alg], audience="authenticated", issuer=issuer.issuer,
                                 options={"require": ["exp", "sub", "iat"]}, leeway=30)
         except Unauthorized:
             raise
