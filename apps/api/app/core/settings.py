@@ -17,6 +17,10 @@ class Settings(BaseSettings):
     supabase_url: str = Field(..., description="https://<ref>.supabase.co")
     supabase_anon_key: str = Field(..., description="publishable/anon key — used only for the password grant proxy")
     supabase_jwt_secret: str = Field("", description="legacy HS256 secret; leave empty when the project uses JWKS signing keys")
+    # Transition only: also accept sessions issued by the previous Supabase project (installed apps keep
+    # signing in there until they receive the OTA). Empty = disabled. Remove after the soak period.
+    legacy_supabase_url: str = Field("", description="previous project URL; sessions from it stay valid during the move")
+    legacy_supabase_jwt_secret: str = Field("", description="HS256 secret of the previous project, if it uses one")
     database_url: str = Field(..., description="postgres://paisa_api.<ref>:<pw>@<pooler-host>:6543/postgres")
     db_pool_min: int = 1
     db_pool_max: int = 5
