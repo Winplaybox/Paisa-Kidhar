@@ -16,7 +16,7 @@ services:
       - key: ENVIRONMENT
         value: production
       - key: SUPABASE_URL
-        value: https://xatbfyiytcnogfbtfsym.supabase.co
+        value: https://hjnqoppidztraivujyii.supabase.co
       - key: SUPABASE_ANON_KEY
         sync: false
       - key: SUPABASE_JWT_SECRET
@@ -57,11 +57,11 @@ services:
     autoDeploy: true
     envVars:
       - key: EXPO_PUBLIC_API_URL
-        value: https://paisa-kidhar-registry-api.onrender.com
+        value: https://paisa-api.winplaybox.in
       - key: EXPO_PUBLIC_WEB_URL
         value: https://paisa.winplaybox.in
       - key: EXPO_PUBLIC_SUPABASE_URL
-        value: https://xatbfyiytcnogfbtfsym.supabase.co
+        value: https://hjnqoppidztraivujyii.supabase.co
       - key: EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY
         sync: false
     routes:
