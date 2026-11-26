@@ -41,8 +41,8 @@ export function AdBanner({ hidden }: { hidden?: boolean }) {
   );
 }
 
-// ---- Interstitial: at most once per 5 minutes, only at natural pauses (e.g. after publishing). ----
-const INTERSTITIAL_GAP_MS = 5 * 60 * 1000;
+// ---- Interstitial: at most once per 3 minutes, only at natural pauses (e.g. after publishing or confirming a gift). ----
+const INTERSTITIAL_GAP_MS = 3 * 60 * 1000;
 let lastInterstitial = 0;
 export async function showInterstitial(opts: { premium?: boolean } = {}) {
   if (!(config.adsEnabled && getFlags().ads) || opts.premium || Date.now() - lastInterstitial < INTERSTITIAL_GAP_MS) return;
@@ -52,8 +52,8 @@ export async function showInterstitial(opts: { premium?: boolean } = {}) {
   ad.load();
 }
 
-// ---- App open: when the couple returns to the app, at most once per 4 hours, never on cold start. ----
-const APP_OPEN_GAP_MS = 4 * 60 * 60 * 1000;
+// ---- App open: when the couple returns to the app, at most once per 2 hours, never on cold start. ----
+const APP_OPEN_GAP_MS = 2 * 60 * 60 * 1000;
 export function useAppOpenAd(enabled: boolean) {
   useEffect(() => {
     if (!(config.adsEnabled && getFlags().ads) || !enabled) return;

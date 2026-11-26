@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { View } from 'react-native';
 
 import { ConfettiBurst } from '@/design-system/Anim';
-import { showInterstitial } from '@/lib/ads';
+import { AdBanner, showInterstitial } from '@/lib/ads';
 import { ShareCard } from '@/components/ShareCard';
 import { Banner, Button, Card, EmptyState, ErrorState, IconButton, LoadingList, ProgressBar, Row, Screen, Text } from '@/design-system/components';
 import { useTheme } from '@/design-system/ThemeProvider';
@@ -104,6 +104,7 @@ export default function Goals() {
       })}
 
       {r.status === 'published' ? <ShareCard registry={r} /> : null}
+      <AdBanner hidden={r.plan === 'premium'} />
     </Screen>
     {celebrate ? <ConfettiBurst key={celebrate} show /> : null}
     </View>

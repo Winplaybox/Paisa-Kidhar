@@ -1,6 +1,7 @@
 import * as Clipboard from 'expo-clipboard';
 import { Linking, Platform, Share } from 'react-native';
 
+import { api } from '@/lib/api';
 import { t } from '@/i18n';
 import { config } from '@/lib/config';
 
@@ -12,14 +13,16 @@ export async function openStoreListing() {
   await Linking.openURL(config.playUrl).catch(() => {});
 }
 
-/** Share sheet with the live Play link. Falls back to copying the link where there is no share sheet. Returns 'copied' | 'shared'. */
-export async function shareApp(): Promise<'copied' | 'shared'> {
-  const message = t('share_app_msg', { url: config.playUrl });
+/** Share sheet with the live Play link (optional referrer attribution). Falls back to copying the link where there is no share sheet. */
+export async function shareApp(referrer?: string): Promise<'copied' | 'shared'> {
+  const url = referrer ? `${config.playUrl}&referrer=${encodeURIComponent(`utm_source=app_invite&utm_medium=${referrer}`)}` : config.playUrl;
+  const message = t('share_app_msg', { url });
+  api.track('referral_shared', { has_ref: !!referrer });
   try {
-    await Share.share(Platform.OS === 'ios' ? { message, url: config.playUrl } : { message });
+    await Share.share(Platform.OS === 'ios' ? { message, url } : { message });
     return 'shared';
   } catch {
-    await Clipboard.setStringAsync(config.playUrl);
+    await Clipboard.setStringAsync(url);
     return 'copied';
   }
 }

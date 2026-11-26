@@ -56,7 +56,7 @@ export default function Settings() {
     if (r.kind !== 'none') { setMsg(null); return; }
     setMsg({ tone: 'positive', text: tx('up_latest') });
   };
-  const share = async () => { if ((await shareApp()) === 'copied') setMsg({ tone: 'positive', text: tx('share_copied') }); };
+  const share = async () => { if ((await shareApp(profile?.username)) === 'copied') setMsg({ tone: 'positive', text: tx('share_copied') }); };
 
   return (
     <Screen edges={['top']}>
