@@ -34,7 +34,14 @@ async function request<T>(path: string, { method = 'GET', body, auth = true, hea
   }
   if (raw) return res as unknown as T;
   const text = await res.text();
-  const json = text ? JSON.parse(text) : null;
+  let json: any = null;
+  if (text) {
+    try {
+      json = JSON.parse(text);
+    } catch {
+      throw new ApiError(res.status, 'bad_response', tr('cm_error'));
+    }
+  }
   if (!res.ok) {
     const e = json?.error ?? {};
     throw new ApiError(res.status, e.code ?? 'error', e.message ?? tr('cm_error'), e.details);

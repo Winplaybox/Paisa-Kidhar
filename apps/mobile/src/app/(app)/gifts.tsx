@@ -60,6 +60,7 @@ export default function Gifts() {
   };
 
   if (cur.isLoading) return <Screen edges={['top']}><LoadingList /></Screen>;
+  if (cur.error) return <Screen edges={['top']}><ErrorState message={errorMessage(cur.error)} onRetry={cur.refetch} /></Screen>;
   if (!cur.registry) return <Screen edges={['top']}><EmptyState animated icon="wallet-outline" title={tx('gf_no_t')} body={tx('gf_no_b')} /></Screen>;
 
   return (
