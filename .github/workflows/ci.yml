@@ -38,5 +38,12 @@ jobs:
       - run: npm ci
       - run: npx tsc --noEmit
       - run: npx expo-doctor || true
-      - run: npx expo export --platform web --output-dir dist
+      - run: node scripts/package-web-release.mjs
+        env:
+          EXPO_PUBLIC_ADSENSE_REGISTRY_SLOT_ID: ${{ vars.EXPO_PUBLIC_ADSENSE_REGISTRY_SLOT_ID }}
       - run: npm audit --omit=dev --audit-level=critical
+      - uses: actions/upload-artifact@v4
+        with:
+          name: paisa-kidhar-web-${{ github.sha }}
+          path: apps/mobile/dist/site.zip
+          if-no-files-found: error
