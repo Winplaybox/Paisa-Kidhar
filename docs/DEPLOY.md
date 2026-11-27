@@ -1,23 +1,30 @@
 # Deploy runbook — Paisa Kidhar
 
-Everything runs on free tiers: Supabase (existing `winplayboxsite` project, isolated `paisa` schema), Render (API + static web), EAS (Android builds), Google Play.
+Production runs on Hostinger (VPS API and static web), Supabase (Auth and the isolated `paisa` schema), and EAS for Android builds. The former Render deployment is not the production target.
 
-> **LIVE status (21 Nov 2026)**
-> - DB: migrations applied to `winplayboxsite`; `paisa_api` login enabled (password only in Render env).
-> - API: Render `paisa-kidhar-registry-api` (Singapore, free) → https://paisa-kidhar-registry-api.onrender.com — deploys branch `feat/production-app` (switch to `main` in Render → Settings after merging PR #1).
-> - Web: Hostinger website `paisa.winplaybox.in` (static, `.htaccess` SPA rewrite). DNS ALIAS auto-created.
-> - Dodo LIVE: product `pdt_0NsPPvAZmY1qMyoo5799p` (₹499 incl. GST), API key `paisa-kidhar-api` (least privilege), webhook `ep_3MP8yBKaSh8kO0i1DoXqQuOFiWK` (signature verified in prod). `PAYMENTS_ENABLED=true`.
-> - Verified in production: email sign-up → confirm → login by username, create/publish registry, guest gift → UPI screen → "I've paid" → couple confirms → totals/charts, Premium checkout opens Dodo LIVE (₹499).
-> - Google sign-in (web) uses Supabase's Google client `239411206040-1rj5…`; Android native sign-in needs an Android OAuth client in that same GCP project (package + SHA-1) after the first EAS build.
+- API: https://paisa-api.winplaybox.in/readyz checks database readiness.
+- Web: https://paisa.winplaybox.in uses a `.htaccess` SPA rewrite.
+- Billing: https://paisa-api.winplaybox.in/v1/billing/plans reports whether Dodo checkout is enabled. A healthy API does not mean checkout is enabled.
+- Android: follow the [Play Store kit](PLAY_STORE_RELEASE.md); verify the active track and release status in Play Console.
 
 ## Re-deploying the web app (Hostinger)
+
+Download the `paisa-kidhar-web-<sha>` artifact from the successful CI run for the commit to deploy. Extract it once to get `site.zip`. To build the same archive locally from the repo root (requires Node 22 and `zip`):
+
 ```bash
-cd apps/mobile
-EXPO_PUBLIC_API_URL=https://paisa-kidhar-registry-api.onrender.com EXPO_PUBLIC_WEB_URL=https://paisa.winplaybox.in \
-  npx expo export --platform web --output-dir ../../dist-web
-cp ../../docs/hostinger.htaccess ../../dist-web/.htaccess && (cd ../../dist-web && zip -qr ../site.zip .)
+npm ci --prefix apps/mobile
+node apps/mobile/scripts/package-web-release.mjs
 ```
-Upload `site.zip` to the website root (hPanel → File manager, or the Hostinger API upload URL), then run *Deploy static site archive* (hPanel or `hosting_websites_deploy-static-site-archive`). Once GitHub Actions billing is fixed, this can be automated.
+
+The script writes `apps/mobile/dist/site.zip`, uses the shared production endpoints from `apps/mobile/eas.json`, and checks that both ad verification files and Android App Links are present. The optional `EXPO_PUBLIC_ADSENSE_REGISTRY_SLOT_ID` (a repository Actions variable in CI) stays unset until the site and consent setup are approved for ads.
+
+Deploy `site.zip` to the existing website in hPanel, keeping the previous archive for rollback. Then run:
+
+```bash
+bash scripts/check-web-release.sh
+```
+
+A successful check confirms that the web host serves the exact verification files, not the SPA fallback HTML, and that the API is ready. Open a registry share link and the [privacy policy](https://paisa.winplaybox.in/legal/privacy) in a browser to verify deep links. If the release breaks, redeploy the previous known-good archive.
 
 ## 1. Database role (one-time, Supabase SQL editor)
 
@@ -27,7 +34,7 @@ The API connects as the least-privileged role `paisa_api` (created by the migrat
 alter role paisa_api with login password '<generate: openssl rand -base64 32>';
 ```
 
-`DATABASE_URL` for Render (transaction pooler, port 6543):
+`DATABASE_URL` for the VPS API (transaction pooler, port 6543):
 `postgresql://paisa_api.xatbfyiytcnogfbtfsym:<password>@<pooler-host>:6543/postgres`
 (Dashboard → Connect → Transaction pooler shows the exact host.)
 
@@ -53,7 +60,7 @@ Google Cloud → APIs & Services → Credentials (same project as your existing 
    - the Play **app signing** key (Play Console → Setup → App signing) once the app exists in Play.
    No client secret goes in the app.
 
-## 4. Render (API) — already done; for a fresh setup:
+## 4. Render (legacy alternative, not production)
 
 1. Render → New → Blueprint → connect `Winplaybox/Paisa-Kidhar` → it reads `render.yaml` (API in Singapore + static web).
 2. Fill the `sync:false` env vars: `DATABASE_URL`, `SUPABASE_ANON_KEY` (publishable key), `SUPABASE_JWT_SECRET` (if HS256), `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY`.
@@ -61,12 +68,12 @@ Google Cloud → APIs & Services → Credentials (same project as your existing 
 4. Verify: `https://paisa-kidhar-registry-api.onrender.com/readyz` → `{"ok":true}`; open `https://paisa.winplaybox.in`.
 5. Free-tier note: the API sleeps after 15 min idle (~50 s cold start). The app shows a friendly "server is waking up" retry message. A free uptime pinger on `/healthz` every 10 min avoids it.
 
-## 5. Dodo Payments (Premium only — never guest gifts)
+## 5. Dodo Payments (digital products only — never guest gifts)
 
 1. Dodo dashboard (**test mode** first) → Products → create one-time product *Premium Registry*, ₹499, digital.
-2. Developer → API keys → `DODO_PAYMENTS_API_KEY`. Developer → Webhooks → endpoint `https://paisa-kidhar-registry-api.onrender.com/v1/webhooks/dodo`, events `payment.succeeded`, `payment.failed`, `payment.cancelled`, `refund.succeeded` → signing secret → `DODO_PAYMENTS_WEBHOOK_KEY`.
-3. Set `DODO_PREMIUM_PRODUCT_ID`, then `PAYMENTS_ENABLED=true` on Render. Buy once with a test card/UPI, confirm the registry turns Premium.
-4. Live: create the product again in live mode, swap keys/product ID, `DODO_PAYMENTS_ENVIRONMENT=live_mode`. The OVD app on the same Dodo account is unaffected (events are filtered by `metadata.app`).
+2. Developer → API keys → `DODO_PAYMENTS_API_KEY`. Developer → Webhooks → production endpoint `https://paisa-api.winplaybox.in/v1/webhooks/dodo`, events `payment.succeeded`, `payment.failed`, `payment.cancelled`, `refund.succeeded` → signing secret → `DODO_PAYMENTS_WEBHOOK_KEY`.
+3. In a test environment, set `DODO_PREMIUM_PRODUCT_ID` and `PAYMENTS_ENABLED=true`. Use a test payment and confirm the registry turns Premium.
+4. After owner approval for live payments, configure the matching live credentials, webhook and product IDs on the VPS API with `DODO_PAYMENTS_ENVIRONMENT=live_mode`. Events are filtered by `metadata.app`.
 
 ## 6. Android build & Play (EAS)
 
@@ -78,10 +85,7 @@ Google Cloud → APIs & Services → Credentials (same project as your existing 
 ```bash
 cd apps/mobile
 npx eas-cli@latest login
-npx eas-cli@latest init                     # creates the EAS project; put the id in EAS_PROJECT_ID
-npx eas-cli@latest env:create --environment production --name EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY --value sb_publishable_... --visibility plaintext
-npx eas-cli@latest env:create --environment production --name EXPO_PUBLIC_API_URL --value https://paisa-kidhar-registry-api.onrender.com --visibility plaintext
-npx eas-cli@latest env:create --environment production --name EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID --value <web client id> --visibility plaintext
+npx eas-cli@latest project:info             # confirm the existing winplaybox/paisa-kidhar project
 npx eas-cli@latest build --platform android --profile preview      # APK to test on your phone
 npx eas-cli@latest build --platform android --profile production   # AAB for Play
 ```
@@ -126,7 +130,7 @@ JS/UI changes that are not config: publish an OTA update with the **Publish prod
 (`apps/mobile/.eas/workflows/publish-update.yml`, run it on `main`). Native changes (new permissions, new native modules, SDK bump) always need a new AAB.
 
 ### Web deploy (Hostinger static) — what works from the sandbox
-1. `npx expo export --platform web --output-dir ../../dist-web`, copy `docs/hostinger.htaccess` to `dist-web/.htaccess`, zip, push the zip to the `web-dist-archive` branch.
+1. Use the CI release artifact above, or build `site.zip` with the same command locally. Make the archive available to the authenticated upload browser.
 2. Get upload credentials with `hosting_files_generate-upload-url` (Hostinger connector).
 3. Upload from a browser tab on `https://hpanel.hostinger.com/` (TUS endpoint only allows that CORS origin): fetch the zip from raw.githubusercontent.com, `POST` then `PATCH` to `<url>/site.zip?override=true` with `X-Auth`, `X-Auth-Rest`, `Tus-Resumable: 1.0.0`.
 4. `hosting_websites_deploy-static-site-archive` with `archive_path: <zip>`.

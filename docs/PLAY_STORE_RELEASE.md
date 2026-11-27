@@ -1,6 +1,6 @@
 # Google Play release kit — Paisa Kidhar
 
-Package: `com.winplaybox.paisakidhar` · Category: **Lifestyle** · Contains ads: **No** for v1.0 (ads flag off) · Price: Free (in-app purchase via Dodo web checkout — see policy note).
+Package: `com.winplaybox.paisakidhar` · Category: **Lifestyle** · Contains ads: **Yes** for the current ads-enabled build profile · Price: Free. Digital checkout is disabled on Android by default.
 
 ## Store listing (English)
 
@@ -40,7 +40,7 @@ Made in Mumbai by WinPlayBox.
 |---|---|
 | Privacy policy | https://paisa.winplaybox.in/legal/privacy |
 | App access | Login required for couples. Provide a reviewer account (email + password) of a test couple with a published registry. Guest flow: https://paisa.winplaybox.in/r/<demo-slug> |
-| Ads | No (v1.0). Change to Yes before enabling `EXPO_PUBLIC_ADS_ENABLED`. |
+| Ads | Yes for the current ads-enabled profile. Verify against the AAB being submitted. |
 | Content rating | IARC questionnaire: no violence/sexual content/gambling; users interact (guest messages are shown publicly after couple confirmation) → expect "Everyone"/3+. |
 | Target audience | 18+ |
 | Financial features | Declare: *None of the listed* (no loans, banking, wallet or money transfer by the app — guests use their own UPI app). Re-check wording at submission time. |
@@ -56,23 +56,23 @@ Made in Mumbai by WinPlayBox.
 | Purchase history (Premium) | Yes | No | App functionality | Yes |
 | Other user-generated content (story, goals, messages) | Yes | No | App functionality | Yes |
 | App interactions (event names) | Yes | No | Analytics | No |
-| Device or other IDs | **No** for v1.0 (becomes Yes, shared with Google AdMob, when ads are enabled) | | | |
+| Device or other IDs | Yes for an AdMob-enabled build | Review the current [Google Mobile Ads SDK disclosure](https://developers.google.com/admob/android/privacy/play-data-disclosure) | Advertising, analytics | Verify against the consent and SDK configuration |
 
 Encrypted in transit: Yes. Users can request deletion: Yes. Payment info (cards/UPI) is handled by Dodo Payments' checkout and by the guest's own UPI app — not collected by the app.
 
 ## Policy notes (read before submitting)
 
 1. **Guest gifts** are UPI deep links (`upi://pay`) into the guest's own UPI app — peer-to-peer transfers, not purchases inside the app. Not subject to Play Billing.
-2. **Premium** is a digital feature unlock. Google Play's Payments policy generally requires Play Billing for digital goods sold in Android apps; India has a user-choice-billing programme. **Before shipping Premium inside the Android app, either (a) enrol in user-choice/alternative billing for India and keep Dodo, or (b) hide the Premium purchase button on Android and sell Premium only on the web.** The app already does (b) by default: the Android build hides the Premium buy button unless `EXPO_PUBLIC_ANDROID_EXTERNAL_BILLING=true` (set it only after enrolling in user-choice billing). v1.0 ships with `PAYMENTS_ENABLED=false` ("Premium coming soon"), which is compliant.
+2. **Premium and paid Shagun Cards** are digital feature unlocks. The current Android profile keeps `EXPO_PUBLIC_ANDROID_EXTERNAL_BILLING=false`, even when web checkout is enabled. Keep it false for Play releases unless the distribution and billing integration have been approved under [Google Play's Payments policy](https://support.google.com/googleplay/android-developer/answer/9858738).
 3. Never claim approval until Play Console shows the release as *Available*.
 
 ## Release steps
-1. Internal testing → install from Play on 2–3 real devices; run `docs/QA_TEST_PLAN.md`.
-2. Closed testing with ≥12 testers for 14 days (required for new personal developer accounts).
-3. Production with staged rollout 20% → 50% → 100%, watching Play vitals (crash/ANR).
-4. Rollback: halt rollout, ship previous build with higher `versionCode`.
+1. Build a signed AAB using the existing EAS `production` profile. The EAS submit profile targets **internal testing as a draft**; it does not publish the app.
+2. In Play Console, finish the listing and declarations and provide reviewer access. Install from Play on 2–3 real devices; run `docs/QA_TEST_PLAN.md`, including sign-in with the Play signing key and Android App Links.
+3. Complete any account-specific [closed testing requirement](https://support.google.com/googleplay/android-developer/answer/14151465) shown in Play Console, then submit for production review. Use a staged rollout for updates where Play offers it and watch Play vitals.
+4. Rollback: halt a staged rollout; if needed, ship the previous code with a higher `versionCode`.
 
-## AdMob (active in production)
+## AdMob (enabled in the Android build profile)
 `EXPO_PUBLIC_ADS_ENABLED=true` is enabled in `apps/mobile/eas.json` with banner, interstitial (3-minute cap, shown at natural pauses after publishing or confirming a gift), and app-open (2-hour cap, never on cold start) units.
 - Ensure Play Console **App content → Ads** is set to **Yes, my app contains ads** and **Data safety** includes Device or other IDs (shared with Google AdMob).
 - Banners appear only on the couple dashboard (`home`, `goals`, `gifts`), never on sign-in, guest gift/payment, receipt or card screens, and never for Premium registries.
