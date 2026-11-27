@@ -1,6 +1,6 @@
 /* Shareable Digital Shagun Card page. Shown after the guest pays (Dodo return_url) and to anyone with the link:
    payment-success animation → envelope opens → card + ambient Lottie. Buyer (holds the edit key) can switch design for free. */
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import * as Clipboard from 'expo-clipboard';
 import { Head } from 'expo-router/head';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -32,11 +32,15 @@ export default function CardPage() {
   const [paidNow, setPaidNow] = useState(false);
   const handle = useRef<CardHandle>(null);
   const wasPending = useRef(false);
+  const queryClient = useQueryClient();
+  const queryKey = ['card', id];
   const q = useQuery({
-    queryKey: ['card', id], queryFn: () => api.card(id), retry: 1,
+    queryKey, queryFn: () => api.card(id), retry: 1,
     refetchInterval: (query) => (query.state.data && query.state.data.status === 'created' && query.state.dataUpdateCount < 40 ? 2500 : false),
   });
   const c = q.data;
+  const rewardTimedOut = c?.source === 'admob_reward' && c.status === 'created'
+    && (queryClient.getQueryState(queryKey)?.dataUpdateCount ?? 0) >= 40;
   const url = `${config.webUrl}/card/${id}`;
 
   useEffect(() => { if (id) loadEditKey(id).then((k) => setCanEdit(!!k)); }, [id, c?.status]);
@@ -88,10 +92,15 @@ export default function CardPage() {
             </>
           ) : c && (c.status === 'failed' || c.status === 'cancelled') ? (
             <Banner tone="negative" title={tx('cd_pay_fail_t')} body={tx('cd_pay_fail_b')} />
+          ) : rewardTimedOut ? (
+            <View style={{ alignItems: 'center', gap: t.space.md, marginTop: 60 }}>
+              <Text muted style={{ textAlign: 'center' }}>{tx('cd_reward_delayed')}</Text>
+              <Button title={tx('cd_reward_check')} kind="secondary" loading={q.isFetching} onPress={() => { void q.refetch(); }} />
+            </View>
           ) : (
             <View style={{ alignItems: 'center', gap: t.space.md, marginTop: 60 }}>
               <ActivityIndicator color={t.colors.accent} />
-              <Text muted style={{ textAlign: 'center' }}>{tx('cd_confirming')}</Text>
+              <Text muted style={{ textAlign: 'center' }}>{tx(c?.source === 'admob_reward' ? 'cd_reward_confirming' : 'cd_confirming')}</Text>
             </View>
           )}
         <Text variant="caption" muted>{tx('cd_made_with')} · {config.webUrl.replace('https://', '')}</Text>

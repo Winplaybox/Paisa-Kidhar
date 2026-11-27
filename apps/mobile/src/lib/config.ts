@@ -16,7 +16,9 @@ export const config = {
     banner: process.env.EXPO_PUBLIC_ADMOB_BANNER_ID ?? '',
     interstitial: process.env.EXPO_PUBLIC_ADMOB_INTERSTITIAL_ID ?? '',
     appOpen: process.env.EXPO_PUBLIC_ADMOB_APP_OPEN_ID ?? '',
+    rewarded: process.env.EXPO_PUBLIC_ADMOB_REWARDED_ID ?? '',
   },
+  adsenseRegistrySlot: process.env.EXPO_PUBLIC_ADSENSE_REGISTRY_SLOT_ID?.trim() ?? '',
   // Play policy: only enable after enrolling in Google Play user-choice/alternative billing for India.
   androidExternalBilling: process.env.EXPO_PUBLIC_ANDROID_EXTERNAL_BILLING === 'true',
   supportEmail: 'support@winplaybox.in',

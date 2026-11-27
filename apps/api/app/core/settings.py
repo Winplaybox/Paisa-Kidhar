@@ -46,6 +46,7 @@ class Settings(BaseSettings):
     dodo_shagun_card_product_id: str = ""
     shagun_card_price_paise: int = 4900
     checkout_return_url: str = "https://paisa.winplaybox.in/billing/return"
+    admob_rewarded_ad_unit_id: str = Field("", pattern=r"^(?:ca-app-pub-[0-9]+/[0-9]+)?$")
 
     @field_validator("supabase_url", "public_web_url", "checkout_return_url")
     @classmethod

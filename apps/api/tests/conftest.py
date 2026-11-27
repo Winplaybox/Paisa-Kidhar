@@ -17,6 +17,7 @@ import httpx
 import jwt
 import pytest
 
+from app.core.admob import KEYS_URL
 from app.core.settings import Settings
 from app.main import create_app
 
@@ -25,6 +26,7 @@ MIGRATIONS = sorted((ROOT / "supabase" / "migrations").glob("*.sql"))
 ADMIN_DSN = os.environ.get("TEST_DATABASE_URL")
 JWT_SECRET = "test-jwt-secret-test-jwt-secret-1234"
 WEBHOOK_KEY = "whsec_" + base64.b64encode(b"super-secret-webhook-key-32bytes!").decode()
+REWARD_UNIT_ID = "ca-app-pub-1234567890123456/1234567890"
 
 pytestmark = pytest.mark.skipif(not ADMIN_DSN, reason="TEST_DATABASE_URL not set")
 
@@ -60,9 +62,14 @@ class FakeUpstream:
         self.users: dict[str, str] = {}  # email -> password
         self.payments: dict[str, dict] = {}
         self.checkouts: list[dict] = []
+        self.admob_keys: list[dict] = []
+        self.admob_key_requests = 0
 
     def handler(self, request: httpx.Request) -> httpx.Response:
         url = str(request.url)
+        if url == KEYS_URL:
+            self.admob_key_requests += 1
+            return httpx.Response(200, json={"keys": self.admob_keys})
         if "/auth/v1/token" in url:
             body = json.loads(request.content)
             if self.users.get(body["email"]) == body["password"]:
@@ -91,6 +98,7 @@ def settings(api_dsn):
                     ip_hash_salt="s" * 20, payments_enabled=True, dodo_payments_api_key="dodo_test",
                     dodo_payments_webhook_key=WEBHOOK_KEY, dodo_premium_product_id="pdt_premium",
                     dodo_shagun_card_product_id="pdt_card",
+                    admob_rewarded_ad_unit_id=REWARD_UNIT_ID,
                     cors_origins="http://localhost:8081")
 
 

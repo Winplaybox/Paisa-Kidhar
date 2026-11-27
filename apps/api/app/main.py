@@ -15,6 +15,7 @@ from fastapi.responses import JSONResponse
 
 from .api.v1 import admin, auth, billing, contributions, events, health, insights, public, registries
 from .core import errors
+from .core.admob import AdMobVerifier
 from .core.appcheck import AppCheckVerifier
 from .core.security import JwtVerifier, RateLimiter
 from .core.settings import Settings, get_settings
@@ -70,6 +71,7 @@ def create_app(settings: Settings | None = None, *, pool_factory=None, http_fact
     app.state.jwt = JwtVerifier(settings)
     app.state.limiter = RateLimiter()
     app.state.appcheck = AppCheckVerifier(settings)
+    app.state.admob = AdMobVerifier()
 
     app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origin_list, allow_credentials=False,
                        allow_methods=["GET", "POST", "PATCH", "PUT", "DELETE"],

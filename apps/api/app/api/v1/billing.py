@@ -11,12 +11,14 @@ import hmac
 import json
 import logging
 import time
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from ... import domain
+from ...core.admob import KEY_LOOKUP_ERRORS
 from ...core.errors import AppError, NotFound
 from ...core.security import Identity, current_identity, rate_limit
 from ...core.settings import Settings
@@ -42,6 +44,7 @@ async def plans(cfg: Settings = Depends(settings)):
         "features": ["Up to 50 goals", "5 premium themes", "No ads for you or your guests", "Custom registry link",
                      "Full insights + CSV export"]}],
         "shagun_card": {"enabled": cfg.payments_enabled and bool(cfg.dodo_shagun_card_product_id),
+                        "rewarded_enabled": bool(cfg.admob_rewarded_ad_unit_id),
                         "price_paise": cfg.shagun_card_price_paise, "designs": list(domain.CARD_TEMPLATES),
                         "occasions": list(domain.CARD_OCCASIONS), "languages": list(domain.CARD_LANGS)}}
 
@@ -103,6 +106,65 @@ def verify_standard_webhook(secret: str, body: bytes, headers) -> bool:
     return any(p.partition(",")[0] == "v1" and hmac.compare_digest(p.partition(",")[2], expected) for p in sig_header.split())
 
 
+@router.get("/webhooks/admob/reward", include_in_schema=False, dependencies=[rate_limit("admob_webhook", 300, 60)])
+async def admob_reward(request: Request, db=Depends(pool), cfg: Settings = Depends(settings), client=Depends(http)):
+    if not cfg.admob_rewarded_ad_unit_id:
+        raise NotFound()
+    try:
+        verified = await request.app.state.admob.verify(request.scope["query_string"], client)
+    except KEY_LOOKUP_ERRORS:
+        log.warning("AdMob verifier keys unavailable")
+        return JSONResponse({"ok": False}, status_code=503)
+    if not verified:
+        return JSONResponse({"ok": False}, status_code=401)
+    message, params = verified
+    event_id = params.get("transaction_id", "")
+    if params.get("ad_unit") != cfg.admob_rewarded_ad_unit_id.split("/", 1)[1] or not 0 < len(event_id) <= 128:
+        return JSONResponse({"ok": False}, status_code=400)
+    if not params.get("user_id") and not params.get("custom_data"):
+        return {"ok": True, "ignored": True}  # AdMob Console URL verification; no draft or grant.
+    try:
+        card_id, gift_id = UUID(params["custom_data"]), UUID(params["user_id"])
+    except (KeyError, ValueError):
+        return JSONResponse({"ok": False}, status_code=400)
+
+    async with db.acquire() as conn, conn.transaction():
+        if await conn.fetchval("select 1 from paisa.payment_events where provider='admob_reward' and event_id=$1", event_id):
+            return {"ok": True, "duplicate": True}
+        gift = await conn.fetchrow(
+            """select c.status, r.plan, r.status as registry_status, r.moderation
+               from paisa.contributions c join paisa.registries r on r.id=c.registry_id
+               where c.id=$1 for update of c""", gift_id,
+        )
+        if (not gift or gift["status"] not in ("guest_marked_paid", "confirmed") or gift["plan"] == "premium"
+                or gift["registry_status"] != "published" or gift["moderation"] != "ok"):
+            return JSONResponse({"ok": False}, status_code=409)
+        draft = await conn.fetchval(
+            "select 1 from paisa.card_orders where id=$1 and contribution_id=$2 and provider='admob_reward' and status='created'",
+            card_id, gift_id,
+        )
+        blocked = await conn.fetchval(
+            """select 1 from paisa.card_orders where contribution_id=$1 and provider='dodo'
+               and (status in ('created','succeeded') or (provider_session_id is not null and status != 'refunded'))""", gift_id,
+        )
+        if not draft or blocked:
+            # Concurrent delivery of the same transaction can commit while this request waits on the gift lock.
+            if await conn.fetchval("select 1 from paisa.payment_events where provider='admob_reward' and event_id=$1", event_id):
+                return {"ok": True, "duplicate": True}
+            return JSONResponse({"ok": False}, status_code=409)
+        inserted = await conn.fetchval(
+            """insert into paisa.payment_events(provider, event_id, event_type, payload_sha256, payload, processed_at)
+               values ('admob_reward',$1,'reward.earned',$2,$3::jsonb,now())
+               on conflict (provider, event_id) do nothing returning id""",
+            event_id, hashlib.sha256(message).hexdigest(), json.dumps(params),
+        )
+        if not inserted:
+            return {"ok": True, "duplicate": True}
+        await conn.execute("update paisa.card_orders set status='succeeded' where id=$1", card_id)
+        await audit(conn, None, "billing.shagun_card_rewarded", "card_order", str(card_id))
+    return {"ok": True}
+
+
 @router.post("/webhooks/dodo", include_in_schema=False, dependencies=[rate_limit("webhook", 300, 60)])
 async def dodo_webhook(request: Request, db=Depends(pool), cfg: Settings = Depends(settings), client=Depends(http)):
     body = await request.body()
@@ -129,6 +191,7 @@ async def dodo_webhook(request: Request, db=Depends(pool), cfg: Settings = Depen
     if kind not in ORDER_TABLES:
         return {"ok": True, "ignored": True}
     table = ORDER_TABLES[kind]
+    provider_filter = " and provider='dodo'" if kind == "shagun_card" else ""
     payment_id = str(data.get("payment_id") or "")
     order_id = str(meta["order_id"])
     done = "update paisa.payment_events set processed_at=now() where provider='dodo' and event_id=$1"
@@ -142,7 +205,7 @@ async def dodo_webhook(request: Request, db=Depends(pool), cfg: Settings = Depen
         p = res.json()
         pmeta = p.get("metadata") or {}
         async with db.acquire() as conn, conn.transaction():
-            o = await conn.fetchrow(f"select * from {table} where id=$1::uuid for update", order_id)
+            o = await conn.fetchrow(f"select * from {table} where id=$1::uuid{provider_filter} for update", order_id)
             ok = (o is not None and p.get("status") == "succeeded" and str(pmeta.get("order_id")) == order_id
                   and int(p.get("total_amount") or 0) >= o["amount_paise"] and str(p.get("currency", "INR")).upper() == o["currency"])
             if not ok:
@@ -156,12 +219,12 @@ async def dodo_webhook(request: Request, db=Depends(pool), cfg: Settings = Depen
                     await audit(conn, None, "billing.shagun_card_paid", "contribution", str(o["contribution_id"]), {"order_id": order_id})
             await conn.execute(done, event_id)
     elif etype in ("payment.failed", "payment.cancelled"):
-        await db.execute(f"update {table} set status=$2 where id=$1::uuid and status='created'", order_id,
+        await db.execute(f"update {table} set status=$2 where id=$1::uuid and status='created'{provider_filter}", order_id,
                          "failed" if etype == "payment.failed" else "cancelled")
         await db.execute(done, event_id)
     elif etype == "refund.succeeded":
         async with db.acquire() as conn, conn.transaction():
-            o = await conn.fetchrow(f"update {table} set status='refunded' where id=$1::uuid returning *", order_id)
+            o = await conn.fetchrow(f"update {table} set status='refunded' where id=$1::uuid{provider_filter} returning *", order_id)
             if o and kind == "premium":
                 await conn.execute("update paisa.registries set plan='free' where id=$1", o["registry_id"])
                 await audit(conn, None, "billing.refunded", "registry", str(o["registry_id"]), {"order_id": order_id})

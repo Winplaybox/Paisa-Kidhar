@@ -1,13 +1,15 @@
 // AdMob — behind EXPO_PUBLIC_ADS_ENABLED. Test unit IDs in dev builds.
-// Rules: never on auth, guest gift/payment, receipt or card screens; never for Premium registries;
-// full-screen formats are frequency-capped so the couple's dashboard stays pleasant.
+// Dashboard ads are frequency-capped. Rewarded cards are an opt-in for non-Premium guests.
+import { useQuery } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
-import { AppState, View } from 'react-native';
-import mobileAds, { AdEventType, AdsConsent, AppOpenAd, BannerAd, BannerAdSize, InterstitialAd, TestIds } from 'react-native-google-mobile-ads';
+import { AppState, Platform, View } from 'react-native';
+import mobileAds, { AdEventType, AdsConsent, AppOpenAd, BannerAd, BannerAdSize, InterstitialAd, RewardedAd, RewardedAdEventType, TestIds } from 'react-native-google-mobile-ads';
 
 import { t as tr } from '@/i18n';
+import { api } from './api';
+import { useAuth } from './auth';
 import { config } from './config';
-import { getFlags } from '@/lib/remoteConfig';
+import { getFlags, useRemoteConfig } from './remoteConfig';
 
 let initPromise: Promise<boolean> | null = null;
 const REQ = { requestNonPersonalizedAdsOnly: true };
@@ -50,6 +52,52 @@ export async function showInterstitial(opts: { premium?: boolean } = {}) {
   const ad = InterstitialAd.createForAdRequest(unit(config.admob.interstitial, TestIds.INTERSTITIAL), REQ);
   const offLoad = ad.addAdEventListener(AdEventType.LOADED, () => { lastInterstitial = Date.now(); ad.show().catch(() => {}); offLoad(); });
   ad.load();
+}
+
+function rewardedAdsEnabled() {
+  const { ads, shagun_cards } = getFlags();
+  return Platform.OS === 'android' && config.adsEnabled && ads && shagun_cards;
+}
+
+export function useCanShowRewardedCardAd(hidden: boolean) {
+  const { ready, session } = useAuth();
+  const { flags } = useRemoteConfig();
+  const enabled = !hidden && Platform.OS === 'android' && config.adsEnabled && flags.ads && flags.shagun_cards;
+  const registries = useQuery({
+    queryKey: ['rewarded-card-registries', session?.user.id], queryFn: api.registries, enabled: enabled && !!session,
+  });
+  return enabled && ready && (!session || (registries.isSuccess && !registries.data.items.some((r) => r.plan === 'premium')));
+}
+
+export async function showRewardedCardAd(userId: string, cardId: string): Promise<boolean> {
+  if (!rewardedAdsEnabled() || !(await init()) || !rewardedAdsEnabled()) return false;
+  const ad = RewardedAd.createForAdRequest(unit(config.admob.rewarded, TestIds.REWARDED), {
+    ...REQ, serverSideVerificationOptions: { userId, customData: cardId },
+  });
+  return new Promise((resolve) => {
+    let earned = false;
+    let done = false;
+    const finish = (completed: boolean) => {
+      if (done) return;
+      done = true;
+      clearTimeout(timeout);
+      ad.destroy();
+      resolve(completed);
+    };
+    const timeout = setTimeout(() => finish(false), 15000);
+    try {
+      ad.addAdEventListener(RewardedAdEventType.LOADED, () => {
+        clearTimeout(timeout);
+        ad.show().catch(() => finish(false));
+      });
+      ad.addAdEventListener(RewardedAdEventType.EARNED_REWARD, () => { earned = true; });
+      ad.addAdEventListener(AdEventType.CLOSED, () => finish(earned));
+      ad.addAdEventListener(AdEventType.ERROR, () => finish(false));
+      ad.load();
+    } catch {
+      finish(false);
+    }
+  });
 }
 
 // ---- App open: when the couple returns to the app, at most once per 2 hours, never on cold start. ----
