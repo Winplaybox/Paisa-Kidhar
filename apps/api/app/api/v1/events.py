@@ -13,7 +13,7 @@ from ..deps import pool
 router = APIRouter(prefix="/v1", tags=["events"])
 
 ALLOWED = {"app_open", "signup_completed", "registry_created", "registry_published", "goal_created", "share_tapped",
-           "public_view", "pledge_started", "pledge_marked_paid", "premium_viewed", "premium_checkout"}
+           "public_view", "pledge_started", "pledge_marked_paid", "premium_viewed", "premium_checkout", "referral_shared"}
 
 
 class EventIn(BaseModel):
