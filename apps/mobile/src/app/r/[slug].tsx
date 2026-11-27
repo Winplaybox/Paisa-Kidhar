@@ -11,6 +11,7 @@ import QRCode from 'react-native-qrcode-svg';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ShagunCardUpsell } from '@/components/ShagunCardUpsell';
+import { WebAdSlot } from '@/components/WebAdSlot';
 import { useRemoteConfig } from '@/lib/remoteConfig';
 import { Anim, ConfettiBurst } from '@/design-system/Anim';
 import { FluidBackground } from '@/design-system/FluidBackground';
@@ -168,6 +169,7 @@ export default function PublicRegistryScreen() {
               </Card>
             );
           })}
+          {flags.ads && !r.premium && !preview ? <WebAdSlot /> : null}
           {r.wishes.length ? (
             <>
               <Text variant="heading">{tx('gp_blessings')}</Text>
@@ -248,7 +250,7 @@ export default function PublicRegistryScreen() {
           <PayProgress t={t} active={status === 'confirmed' ? 4 : 3} />
           <Card tone="alt"><Text variant="caption" muted>{tx('gp_reference')}</Text><Text variant="heading" selectable>{pledge.reference}</Text></Card>
           {flags.shagun_cards ? <ShagunCardUpsell pledge={pledge} partnerOne={r.partner_one} partnerTwo={r.partner_two} guestName={anon ? undefined : name.trim() || undefined}
-            message={message.trim() || undefined} weddingDate={r.wedding_date} slug={r.slug} /> : null}
+            message={message.trim() || undefined} weddingDate={r.wedding_date} slug={r.slug} premium={r.premium} /> : null}
           <Button title={tx('gp_back_registry')} kind="secondary" full={false} onPress={reset} />
           <Card tone="accent" style={{ gap: t.space.sm, alignItems: 'center' }}>
             <Text variant="heading" style={{ textAlign: 'center' }}>{tx('gp_viral_title')}</Text>

@@ -6,6 +6,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 export type CardContext = {
   reference: string; token: string; slug?: string; partnerOne: string; partnerTwo: string; weddingDate?: string | null;
   guestName?: string; message?: string;
+  premium?: boolean;
 };
 const CTX = 'pk.cardctx';
 const keyOf = (id: string) => `pk.cardkey.${id}`;

@@ -4,10 +4,13 @@ import hmac
 import json
 import time
 import uuid
+from urllib.parse import quote, urlencode
 
 import pytest
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import ec
 
-from .conftest import ADMIN_DSN, WEBHOOK_KEY
+from .conftest import ADMIN_DSN, REWARD_UNIT_ID, WEBHOOK_KEY
 
 pytestmark = pytest.mark.skipif(not ADMIN_DSN, reason="TEST_DATABASE_URL not set")
 
@@ -292,6 +295,59 @@ def test_client_ip_ignores_spoofed_left_entries():
     req = SimpleNamespace(headers={"x-forwarded-for": "6.6.6.6, 1.2.3.4"}, client=SimpleNamespace(host="10.0.0.1"),
                           app=SimpleNamespace(state=SimpleNamespace(settings=SimpleNamespace(trusted_proxy_hops=1))))
     assert client_ip(req) == "1.2.3.4"
+
+
+async def test_shagun_admob_ssv(client, make_user, upstream, admin_conn):
+    key = ec.generate_private_key(ec.SECP256R1())
+    pem = key.public_key().public_bytes(serialization.Encoding.PEM, serialization.PublicFormat.SubjectPublicKeyInfo).decode()
+    upstream.admob_keys = [{"keyId": 123, "pem": pem}]
+    unit_id = REWARD_UNIT_ID.split("/")[1]
+    callback = "/v1/webhooks/admob/reward"
+
+    def sign(event, *, custom_data="", user_id="", ad_unit=unit_id, signing_key=key):
+        params = {"ad_unit": ad_unit, "custom_data": custom_data, "reward_amount": "1", "reward_item": "Shagun card",
+                  "transaction_id": event, "user_id": user_id}
+        query = urlencode(params, quote_via=quote)
+        signature = signing_key.sign(query.encode("ascii"), ec.ECDSA(hashes.SHA256()))
+        return f"{callback}?{query}&signature={base64.urlsafe_b64encode(signature).decode().rstrip('=')}&key_id=123"
+
+    assert (await client.get(sign("console-check"))).json() == {"ok": True, "ignored": True}
+    u = await make_user()
+    reg = await _registry(client, u)
+    goal = await _goal(client, u, reg["id"])
+    await client.post(f"/v1/registries/{reg['id']}/publish", headers=u["h"])
+    p = (await client.post(f"/v1/public/registries/{reg['slug']}/pledges", headers={"idempotency-key": uuid.uuid4().hex},
+                           json={"goal_id": goal["id"], "amount_paise": 110000})).json()
+    draft_url = f"/v1/public/pledges/{p['reference']}/card-reward"
+    draft_input = {"token": p["token"], "template": "royal"}
+    assert (await client.post(draft_url, json=draft_input)).status_code == 409
+    await client.post(f"/v1/public/pledges/{p['reference']}/mark-paid", json={"token": p["token"]})
+    draft = (await client.post(draft_url, json=draft_input)).json()
+    card_id, gift_id = draft["card_id"], draft["reward_user_id"]
+    assert (await client.post(draft_url, json=draft_input)).json() == draft
+    card_url = f"/v1/public/cards/{card_id}"
+    assert (await client.get(card_url)).json() == {"id": card_id, "status": "created", "source": "admob_reward"}
+    assert (await client.get(sign("bad", custom_data=card_id, user_id=gift_id,
+                                  signing_key=ec.generate_private_key(ec.SECP256R1())))).status_code == 401
+    assert (await client.get(sign("wrong-unit", custom_data=card_id, user_id=gift_id, ad_unit="123"))).status_code == 400
+    assert (await client.get(sign("wrong-gift", custom_data=card_id, user_id=str(uuid.uuid4())))).status_code == 409
+    assert (await client.get(card_url)).json()["status"] == "created"
+
+    signed = sign("reward-transaction", custom_data=card_id, user_id=gift_id)
+    assert (await client.get(signed.replace("Shagun%20card", "Shagun+card"))).status_code == 401
+    assert (await client.get(signed)).json() == {"ok": True}
+    assert (await client.get(signed)).json() == {"ok": True, "duplicate": True}
+    assert (await client.get(sign("second-reward", custom_data=card_id, user_id=gift_id))).status_code == 409
+    assert upstream.admob_key_requests == 1
+    card = (await client.get(card_url)).json()
+    assert card["status"] == "succeeded" and card["design"] == "royal"
+    assert (await client.post(draft_url, json=draft_input)).json() == {**draft, "status": "succeeded"}
+    checkout_url = f"/v1/public/pledges/{p['reference']}/card-checkout"
+    assert (await client.post(checkout_url, json={**draft_input, "email": "guest@example.com"})).status_code == 409
+    assert (await client.patch(card_url, json={"edit_key": draft["edit_key"], "template": "rose"})).json()["design"] == "rose"
+    order = await admin_conn.fetchrow("select provider, amount_paise, buyer_email from paisa.card_orders where id=$1::uuid", card_id)
+    assert dict(order) == {"provider": "admob_reward", "amount_paise": 0, "buyer_email": None}
+    assert await admin_conn.fetchval("select count(*) from paisa.payment_events where provider='admob_reward'") == 1
 
 
 async def test_shagun_card_checkout_and_webhook(client, make_user, upstream):

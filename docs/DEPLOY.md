@@ -70,6 +70,11 @@ Google Cloud → APIs & Services → Credentials (same project as your existing 
 
 ## 6. Android build & Play (EAS)
 
+### Rewarded Shagun Cards and web ads
+
+- Apply the rewarded-card migration before deploying the API. Set `ADMOB_REWARDED_AD_UNIT_ID` on the API and the same full unit ID as `EXPO_PUBLIC_ADMOB_REWARDED_ID` in the Android build. Use `https://paisa-api.winplaybox.in/v1/webhooks/admob/reward` as the rewarded unit's AdMob server-side verification URL. The Android sample unit shows test ads when the app unit ID is unset or in dev; it does not verify against a different live unit ID. Use AdMob test devices with the configured unit to test the full callback and unlock.
+- For web, configure AdSense Privacy & messaging for the site, leave Auto ads off, and set `EXPO_PUBLIC_ADSENSE_REGISTRY_SLOT_ID` to the display unit ID at export time. Confirm `https://paisa.winplaybox.in/ads.txt` serves the exported file. Without a slot ID, the app neither requests the script nor renders the slot.
+
 ```bash
 cd apps/mobile
 npx eas-cli@latest login

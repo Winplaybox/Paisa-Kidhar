@@ -40,8 +40,11 @@ class CardStyle(BaseModel):
     blessing: str | None = Field(default=None, max_length=280)
 
 
-class CardCheckoutIn(CardStyle):
+class CardRewardIn(CardStyle):
     token: str = Field(min_length=64, max_length=64)
+
+
+class CardCheckoutIn(CardRewardIn):
     email: str = Field(min_length=5, max_length=254, pattern=r"^[^\s@]+@[^\s@]+\.[^\s@]{2,}$")
 
 
@@ -198,6 +201,57 @@ async def pledge_status(reference: str, token: str, db=Depends(pool), cfg=Depend
     return rec(row)
 
 
+async def _lock_card_gift(conn, reference):
+    c = await conn.fetchrow("""select c.*, r.status as registry_status, r.plan, r.moderation
+                                from paisa.contributions c join paisa.registries r on r.id=c.registry_id
+                                where c.reference=$1 for update of c""", reference)
+    if not c or c["status"] == "rejected" or c["registry_status"] != "published":
+        raise AppError("This gift can't get a card.", code="invalid_state", status=409)
+    return c
+
+
+async def _create_card_order(conn, gift, style, provider, amount, email=None):
+    return await conn.fetchrow(
+        """insert into paisa.card_orders(contribution_id, registry_id, design, occasion, palette, lang, recipient,
+                                         event_date, sender_name, blessing, provider, amount_paise, buyer_email)
+           values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+           on conflict (contribution_id) where provider = 'admob_reward' do update
+           set design=excluded.design, occasion=excluded.occasion, palette=excluded.palette, lang=excluded.lang,
+               recipient=excluded.recipient, event_date=excluded.event_date, sender_name=excluded.sender_name, blessing=excluded.blessing
+           where card_orders.status='created' returning *""",
+        gift["id"], gift["registry_id"], style.get("design", "marigold"), style.get("occasion", "wedding"),
+        style.get("palette", 0), style.get("lang", "en"), style.get("recipient"), style.get("event_date"),
+        style.get("sender_name"), style.get("blessing"), provider, amount, email,
+    )
+
+
+@router.post("/pledges/{reference}/card-reward", dependencies=[rate_limit("card_reward", 10, 600)])
+async def card_reward(reference: str, body: CardRewardIn, db=Depends(pool), cfg=Depends(settings)):
+    if not verify_pledge_token(reference, body.token, cfg):
+        raise NotFound("Gift not found.")
+    if not cfg.admob_rewarded_ad_unit_id:
+        raise AppError("Rewarded cards aren't available yet.", code="rewards_disabled", status=503)
+    style = _validated_style(body)
+    async with db.acquire() as conn, conn.transaction():
+        gift = await _lock_card_gift(conn, reference)
+        if gift["status"] not in ("guest_marked_paid", "confirmed") or gift["plan"] == "premium" or gift["moderation"] != "ok":
+            raise AppError("This gift can't get a rewarded card.", code="invalid_state", status=409)
+        order = await conn.fetchrow(
+            "select id, provider, status from paisa.card_orders where contribution_id=$1 and status='succeeded'", gift["id"],
+        )
+        if order and order["provider"] != "admob_reward":
+            raise AppError("You already sent a card with this gift.", code="already_sent", status=409)
+        if not order:
+            if await conn.fetchval(
+                """select 1 from paisa.card_orders where contribution_id=$1 and provider='dodo'
+                   and (status='created' or (provider_session_id is not null and status != 'refunded'))""", gift["id"],
+            ):
+                raise AppError("A paid checkout is already pending for this gift.", code="checkout_pending", status=409)
+            order = await _create_card_order(conn, gift, style, "admob_reward", 0)
+    card_id = str(order["id"])
+    return {"card_id": card_id, "edit_key": card_edit_key(card_id, cfg), "reward_user_id": str(gift["id"]), "status": order["status"]}
+
+
 @router.post("/pledges/{reference}/card-checkout", dependencies=[rate_limit("card_checkout", 10, 600)])
 async def card_checkout(reference: str, body: CardCheckoutIn, db=Depends(pool), cfg=Depends(settings), client=Depends(http)):
     """Guest buys a ₹49 Digital Shagun Card (a digital product sold by the platform). Gift money is untouched."""
@@ -206,18 +260,11 @@ async def card_checkout(reference: str, body: CardCheckoutIn, db=Depends(pool), 
     if not (cfg.payments_enabled and cfg.dodo_shagun_card_product_id):
         raise AppError("Shagun cards aren't available yet.", code="payments_disabled", status=503)
     style = _validated_style(body)
-    c = await db.fetchrow("""select c.*, r.status as registry_status from paisa.contributions c
-                             join paisa.registries r on r.id=c.registry_id where c.reference=$1""", reference)
-    if not c or c["status"] == "rejected" or c["registry_status"] != "published":
-        raise AppError("This gift can't get a card.", code="invalid_state", status=409)
-    if await db.fetchval("select 1 from paisa.card_orders where contribution_id=$1 and status='succeeded'", c["id"]):
-        raise AppError("You already sent a card with this gift.", code="already_sent", status=409)
-    order = await db.fetchrow("""insert into paisa.card_orders(contribution_id, registry_id, design, occasion, palette, lang, recipient,
-                                                              event_date, sender_name, blessing, amount_paise, buyer_email)
-                                 values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) returning *""",
-                              c["id"], c["registry_id"], style.get("design", "marigold"), style.get("occasion", "wedding"),
-                              style.get("palette", 0), style.get("lang", "en"), style.get("recipient"), style.get("event_date"),
-                              style.get("sender_name"), style.get("blessing"), cfg.shagun_card_price_paise, body.email.strip().lower())
+    async with db.acquire() as conn, conn.transaction():
+        c = await _lock_card_gift(conn, reference)
+        if await conn.fetchval("select 1 from paisa.card_orders where contribution_id=$1 and status='succeeded'", c["id"]):
+            raise AppError("You already sent a card with this gift.", code="already_sent", status=409)
+        order = await _create_card_order(conn, c, style, "dodo", cfg.shagun_card_price_paise, body.email.strip().lower())
     payload = {
         "product_cart": [{"product_id": cfg.dodo_shagun_card_product_id, "quantity": 1}],
         "customer": {"email": body.email.strip().lower(), "name": (c["guest_name"] or "Guest")[:60]},
@@ -235,7 +282,7 @@ async def card_checkout(reference: str, body: CardCheckoutIn, db=Depends(pool), 
     return {"card_id": str(order["id"]), "checkout_url": data.get("checkout_url"), "edit_key": card_edit_key(str(order["id"]), cfg)}
 
 
-_CARD_SELECT = """select k.id, k.status, k.design, k.occasion, k.palette, k.lang, k.recipient, k.event_date, k.sender_name, k.blessing,
+_CARD_SELECT = """select k.id, k.status, k.provider, k.design, k.occasion, k.palette, k.lang, k.recipient, k.event_date, k.sender_name, k.blessing,
                          k.created_at, c.guest_name, c.guest_message, c.is_anonymous,
                          r.partner_one, r.partner_two, r.wedding_date, r.city, r.slug, r.theme
                   from paisa.card_orders k join paisa.contributions c on c.id=k.contribution_id
@@ -263,7 +310,10 @@ async def get_card(card_id: str, db=Depends(pool)):
     if not k:
         raise NotFound("Card not found.")
     if k["status"] != "succeeded":
-        return {"id": str(k["id"]), "status": k["status"]}
+        pending = {"id": str(k["id"]), "status": k["status"]}
+        if k["provider"] == "admob_reward":
+            pending["source"] = "admob_reward"
+        return pending
     return _card_out(k)
 
 

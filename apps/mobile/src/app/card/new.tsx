@@ -20,6 +20,7 @@ import { Banner, Button, Card, Chip, EmptyState, Field, Row, Text } from '@/desi
 import { DateField } from '@/design-system/DateField';
 import { useTheme } from '@/design-system/ThemeProvider';
 import { useI18n } from '@/i18n';
+import { showRewardedCardAd, useCanShowRewardedCardAd } from '@/lib/ads';
 import { api } from '@/lib/api';
 import { canUseExternalBilling } from '@/lib/billing';
 import { loadCardContext, loadEditKey, saveEditKey, type CardContext } from '@/lib/cardDraft';
@@ -57,6 +58,7 @@ export default function NewCard() {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const canReward = useCanShowRewardedCardAd(!!edit || canPay || !offer?.rewarded_enabled || ctx?.premium !== false);
 
   useEffect(() => {
     (async () => {
@@ -100,6 +102,20 @@ export default function NewCard() {
       if (Platform.OS === 'web') { window.location.href = r.checkout_url; return; }
       await WebBrowser.openBrowserAsync(r.checkout_url);
       router.replace(`/card/${r.card_id}`);
+    } catch (e) { setErr(errorMessage(e)); } finally { setBusy(false); }
+  };
+
+  const reward = async () => {
+    if (!ctx || !canReward) return;
+    setBusy(true); setErr(null);
+    try {
+      const draft = await api.cardReward(ctx.reference, ctx.token, body());
+      await saveEditKey(draft.card_id, draft.edit_key);
+      if (draft.status === 'succeeded' || await showRewardedCardAd(draft.reward_user_id, draft.card_id)) {
+        router.replace(`/card/${draft.card_id}`);
+      } else {
+        setErr(tx('cd_reward_unavailable'));
+      }
     } catch (e) { setErr(errorMessage(e)); } finally { setBusy(false); }
   };
 
@@ -253,6 +269,7 @@ export default function NewCard() {
                 <Text variant="caption" muted style={{ textAlign: 'center' }}>{tx('cd_secure')}</Text>
               </>
             ) : edit ? <Button title={saved ? tx('cd_saved') : tx('cd_save')} kind="accent" icon="checkmark" loading={busy} onPress={saveEdit} /> : null}
+            {canReward ? <Button title={tx('cd_reward_send')} kind="accent" icon="play-circle-outline" loading={busy} onPress={reward} /> : null}
           </>
         ) : null}
       </ScrollView>

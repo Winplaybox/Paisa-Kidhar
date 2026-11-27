@@ -88,11 +88,11 @@ export type PublicRegistry = {
 };
 export type Pledge = { reference: string; token: string; status: ContributionStatus; amount_paise: number; goal_title: string; payee_name: string; upi_vpa: string; upi_link: string };
 export type Plans = { payments_enabled: boolean; plans: { code: string; name: string; price_paise: number; billing: string; features: string[] }[];
-  shagun_card?: { enabled: boolean; price_paise: number; designs: string[]; occasions?: string[]; languages?: string[] } };
+  shagun_card?: { enabled: boolean; rewarded_enabled?: boolean; price_paise: number; designs: string[]; occasions?: string[]; languages?: string[] } };
 export type CardStyleInput = {
   template?: string; occasion?: string; palette?: number; lang?: string; recipient?: string | null; event_date?: string | null; sender?: string | null; blessing?: string | null;
 };
-export type ShagunCard = { id: string; status: string; design?: string; occasion?: string; palette?: number; lang?: string; recipient?: string | null;
+export type ShagunCard = { id: string; status: string; source?: 'admob_reward'; design?: string; occasion?: string; palette?: number; lang?: string; recipient?: string | null;
   from?: string | null; message?: string | null; partner_one?: string; partner_two?: string; slug?: string; theme?: RegistryTheme; wedding_date?: string | null; city?: string | null };
 export type AdminMetrics = { totals: Record<string, number>; weekly_signups: { week: string; n: number }[]; contribution_states: { status: string; n: number }[] };
 
@@ -145,6 +145,9 @@ export const api = {
   plans: () => request<Plans>('/v1/billing/plans', { auth: false }),
   cardCheckout: (reference: string, token: string, email: string, style: CardStyleInput) =>
     request<{ card_id: string; checkout_url: string; edit_key: string }>(`/v1/public/pledges/${reference}/card-checkout`, { method: 'POST', body: { token, email, ...style }, auth: false }),
+  cardReward: (reference: string, token: string, style: CardStyleInput) =>
+    request<{ card_id: string; edit_key: string; reward_user_id: string; status: 'created' | 'succeeded' }>(
+      `/v1/public/pledges/${reference}/card-reward`, { method: 'POST', body: { token, ...style }, auth: false }),
   cardEdit: (id: string, editKey: string, style: CardStyleInput) =>
     request<ShagunCard>(`/v1/public/cards/${id}`, { method: 'PATCH', body: { edit_key: editKey, ...style }, auth: false }),
   card: (id: string) => request<ShagunCard>(`/v1/public/cards/${id}`, { auth: false }),
