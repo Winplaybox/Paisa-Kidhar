@@ -456,5 +456,19 @@
   "up_relaunch_sub": "નવું વર્ઝન ઇન્સ્ટોલ કરવા માટે",
   "up_relaunch": "રીલોન્ચ",
   "up_downloading": "ડાઉનલોડ થઈ રહ્યું છે…",
-  "up_row_sub": "Google Play પર નવું વર્ઝન તૈયાર છે"
+  "up_row_sub": "Google Play પર નવું વર્ઝન તૈયાર છે",
+  "sc_instagram": "Instagram",
+  "sc_insta_copied": "લિંક કૉપી થઈ ગઈ — તમારી Instagram સ્ટોરીમાં પેસ્ટ કરો!",
+  "ref_title": "બીજા કપલને આમંત્રિત કરો",
+  "ref_body": "શું કોઈના લગ્ન છે? Paisa Kidhar શેર કરો જેથી તેમને પણ ડબલ ભેટો ન મળે.",
+  "ref_btn": "મિત્રોને આમંત્રિત કરો",
+  "ob_title": "ઝડપી શરૂઆત ({done}/3)",
+  "ob_step1": "તમારી વેડિંગ રજિસ્ટ્રી બનાવો",
+  "ob_step2": "તમારું UPI ID અને પહેલું લક્ષ્ય ઉમેરો",
+  "ob_step3": "પબ્લિશ કરો અને WhatsApp પર શેર કરો",
+  "ob_hide": "ગાઇડ છુપાવો",
+  "ret_countdown": "લગ્નમાં {n} દિવસ બાકી",
+  "ret_today": "લગ્નની શુભેચ્છાઓ!",
+  "ret_streak": "{n}-દિવસની સ્ટ્રીક",
+  "gf_share_cta": "રજિસ્ટ્રી લિંક શેર કરો"
 }

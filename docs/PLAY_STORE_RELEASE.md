@@ -72,5 +72,21 @@ Encrypted in transit: Yes. Users can request deletion: Yes. Payment info (cards/
 3. Production with staged rollout 20% → 50% → 100%, watching Play vitals (crash/ANR).
 4. Rollback: halt rollout, ship previous build with higher `versionCode`.
 
-## AdMob (later)
+## AdMob (active in production)
+`EXPO_PUBLIC_ADS_ENABLED=true` is enabled in `apps/mobile/eas.json` with banner, interstitial (3-minute cap, shown at natural pauses after publishing or confirming a gift), and app-open (2-hour cap, never on cold start) units.
+- Ensure Play Console **App content → Ads** is set to **Yes, my app contains ads** and **Data safety** includes Device or other IDs (shared with Google AdMob).
+- Banners appear only on the couple dashboard (`home`, `goals`, `gifts`), never on sign-in, guest gift/payment, receipt or card screens, and never for Premium registries.
+
+## ASO & Play Store Listing Optimization
+- **Primary keywords:** `indian wedding registry`, `shagun upi`, `wedding cash gift`, `honeymoon fund india`, `digital shagun`, `shaadi gift list`
+- **Title (≤30 chars):** `Paisa Kidhar: Wedding Registry` (30 chars)
+- **Short description (≤80 chars):** `Skip duplicate gifts. Share wedding goals & get shagun directly via UPI.` (72 chars)
+- **Screenshot captions:**
+  1. `Create your wedding dream list in 2 minutes`
+  2. `Receive shagun straight to your UPI ID — 0% fee`
+  3. `Share QR & link on WhatsApp and Instagram`
+  4. `Track every gift & blessing in one dashboard`
+- **Localization:** Add Hindi (`hi-IN`), Gujarati (`gu-IN`), and Marathi (`mr-IN`) store listings in Play Console matching `apps/mobile/src/i18n/locales/`.
+
+<!-- old note: -->
 Create the AdMob app + one adaptive banner unit → set `EXPO_PUBLIC_ADMOB_ANDROID_APP_ID`, `EXPO_PUBLIC_ADMOB_BANNER_ID`, `EXPO_PUBLIC_ADS_ENABLED=true` in EAS env, configure the UMP consent message in AdMob → Privacy & messaging, update Data safety + "Contains ads", rebuild. Banners appear only on the couple dashboard, never on sign-in, gift/payment, receipt or guest pages, and never for Premium registries.

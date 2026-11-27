@@ -456,5 +456,19 @@
   "up_relaunch_sub": "To install the new version",
   "up_relaunch": "Re-launch",
   "up_downloading": "Downloading…",
-  "up_row_sub": "A new version is ready on Google Play"
+  "up_row_sub": "A new version is ready on Google Play",
+  "sc_instagram": "Instagram",
+  "sc_insta_copied": "Link copied — paste it in your Instagram Story!",
+  "ref_title": "Invite another couple",
+  "ref_body": "Know someone getting married? Share Paisa Kidhar so they skip duplicate gifts too.",
+  "ref_btn": "Invite friends",
+  "ob_title": "Quick start ({done}/3)",
+  "ob_step1": "Create your wedding registry",
+  "ob_step2": "Add your UPI ID & first gift goal",
+  "ob_step3": "Publish & share on WhatsApp",
+  "ob_hide": "Hide guide",
+  "ret_countdown": "{n} days to your wedding",
+  "ret_today": "Happy wedding day!",
+  "ret_streak": "{n}-day streak",
+  "gf_share_cta": "Share registry link"
 }

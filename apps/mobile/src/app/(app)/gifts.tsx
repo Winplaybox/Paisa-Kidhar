@@ -8,6 +8,7 @@ import { Pop } from '@/design-system/Anim';
 import { Banner, Button, Card, Chip, EmptyState, ErrorState, LoadingList, Row, Screen, Text } from '@/design-system/components';
 import { useTheme } from '@/design-system/ThemeProvider';
 import { dateLocale, useI18n } from '@/i18n';
+import { AdBanner, showInterstitial } from '@/lib/ads';
 import { api, type Contribution, type ContributionStatus } from '@/lib/api';
 import { formatINR } from '@/lib/money';
 import { errorMessage, useContributions, useDecide } from '@/lib/queries';
@@ -30,7 +31,15 @@ export default function Gifts() {
   const [hearts, setHearts] = useState(0);
 
   const act = (c: Contribution, decision: 'confirmed' | 'rejected') => {
-    const run = () => decide.mutate({ id: c.id, decision }, { onSuccess: () => { if (decision === 'confirmed') setHearts((n) => n + 1); }, onError: (e) => setErr(errorMessage(e)) });
+    const run = () => decide.mutate({ id: c.id, decision }, {
+      onSuccess: () => {
+        if (decision === 'confirmed') {
+          setHearts((n) => n + 1);
+          setTimeout(() => showInterstitial({ premium: cur.registry?.plan === 'premium' }), 2000);
+        }
+      },
+      onError: (e) => setErr(errorMessage(e)),
+    });
     if (decision === 'rejected' && Platform.OS !== 'web') {
       Alert.alert(tx('gf_alert_t'), tx('gf_alert_b', { amt: formatINR(c.amount_paise), ref: c.reference }),
         [{ text: tx('common_cancel'), style: 'cancel' }, { text: tx('stat_rejected'), style: 'destructive', onPress: run }]);
@@ -77,7 +86,10 @@ export default function Gifts() {
         {FILTERS.map((f) => <Chip key={f.key} label={tx(f.key)} selected={filter === f.k} onPress={() => setFilter(f.k)} />)}
       </Row>
       {q.isLoading ? <LoadingList /> : q.error ? <ErrorState message={errorMessage(q.error)} onRetry={q.refetch} /> :
-        q.data!.items.length === 0 ? <EmptyState animated icon="mail-open-outline" title={tx('gf_none_t')} body={tx('gf_none_b')} /> :
+        q.data!.items.length === 0 ? (
+          <EmptyState animated icon="mail-open-outline" title={tx('gf_none_t')} body={tx('gf_none_b')}
+            action={<Button title={tx('gf_share_cta')} kind="secondary" icon="share-social-outline" full={false} onPress={() => router.push('/home')} />} />
+        ) :
         q.data!.items.map((c) => (
           <Card key={c.id}>
             <Row style={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -105,6 +117,7 @@ export default function Gifts() {
             ) : null}
           </Card>
         ))}
+      <AdBanner hidden={cur.registry.plan === 'premium'} />
     </Screen>
     <Pop trigger={hearts} />
     </View>

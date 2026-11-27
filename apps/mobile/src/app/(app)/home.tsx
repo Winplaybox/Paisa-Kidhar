@@ -10,9 +10,11 @@ import { Banner, Button, Card, Chip, EmptyState, ErrorState, LoadingList, Progre
 import { useTheme } from '@/design-system/ThemeProvider';
 import { useI18n } from '@/i18n';
 import { AdBanner } from '@/lib/ads';
+import { shareApp } from '@/lib/appShare';
 import { useAuth } from '@/lib/auth';
 import { formatINR, formatINRCompact } from '@/lib/money';
 import { errorMessage, useInsights } from '@/lib/queries';
+import { daysUntil, useCheckInStreak, useOnboardingGuide } from '@/lib/retention';
 import { useCurrentRegistry } from '@/lib/useCurrentRegistry';
 
 const RANGES = [{ k: '7', key: 'hm_r7' }, { k: '30', key: 'hm_r30' }, { k: '90', key: 'hm_r90' }, { k: '365', key: 'hm_r365' }];
@@ -23,6 +25,8 @@ export default function Home() {
   const { t: tx } = useI18n();
   const { profile } = useAuth();
   const cur = useCurrentRegistry();
+  const streak = useCheckInStreak();
+  const guide = useOnboardingGuide();
   const [range, setRange] = useState('30');
   const [goalId, setGoalId] = useState<string | undefined>();
   const from = iso(new Date(Date.now() - (Number(range) - 1) * 86400000));
@@ -40,6 +44,11 @@ export default function Home() {
     }
     const r = cur.registry;
     const k = ins.data?.kpis;
+    const daysLeft = daysUntil(r.wedding_date);
+    const step1 = true;
+    const step2 = !!r.upi_vpa && r.goals.some((g) => g.status !== 'archived');
+    const step3 = r.status === 'published';
+    const doneSteps = [step1, step2, step3].filter(Boolean).length;
     const statusColors: Record<string, string> = { confirmed: t.colors.positive, guest_marked_paid: t.colors.warning, pledged: t.colors.textMuted, rejected: t.colors.negative, expired: t.colors.border };
     const statusLabels: Record<string, string> = { confirmed: tx('stat_confirmed'), guest_marked_paid: tx('stat_guest'), pledged: tx('stat_pledged'), rejected: tx('stat_rejected'), expired: tx('stat_expired') };
     return (
@@ -47,7 +56,29 @@ export default function Home() {
         <View style={{ gap: 4 }}>
           <Text muted>{tx('hm_hello', { name: profile?.display_name?.split(' ')[0] || profile?.username || '' })}</Text>
           <Text variant="title">{r.partner_one} & {r.partner_two}</Text>
+          <Row gap={t.space.sm} wrap>
+            {daysLeft !== null ? (
+              <Chip label={daysLeft === 0 ? tx('ret_today') : tx('ret_countdown', { n: daysLeft })} selected />
+            ) : null}
+            {streak > 1 ? <Chip label={tx('ret_streak', { n: streak })} /> : null}
+          </Row>
         </View>
+
+        {!guide.hidden && doneSteps < 3 ? (
+          <Card tone="alt" style={{ gap: t.space.sm }}>
+            <Row style={{ justifyContent: 'space-between' }}>
+              <Text variant="heading">{tx('ob_title', { done: doneSteps })}</Text>
+              <Button title={tx('ob_hide')} kind="ghost" full={false} onPress={guide.dismiss} style={{ minHeight: 32, paddingHorizontal: 8 }} />
+            </Row>
+            <Text variant="caption" color={step1 ? t.colors.positive : t.colors.textMuted}>✓ {tx('ob_step1')}</Text>
+            <Button title={`${step2 ? '✓' : '○'} ${tx('ob_step2')}`} kind="ghost" full={false}
+              onPress={() => router.push(r.upi_vpa ? '/goals' : { pathname: '/registry/setup', params: { id: r.id } })}
+              style={{ justifyContent: 'flex-start', paddingHorizontal: 0, minHeight: 36 }} />
+            <Button title={`${step3 ? '✓' : '○'} ${tx('ob_step3')}`} kind="ghost" full={false}
+              onPress={() => router.push('/goals')}
+              style={{ justifyContent: 'flex-start', paddingHorizontal: 0, minHeight: 36 }} />
+          </Card>
+        ) : null}
 
         {r.status !== 'published' ? (
           <Banner tone="warning" title={r.status === 'paused' ? tx('hm_paused') : tx('hm_draft')}
@@ -111,6 +142,13 @@ export default function Home() {
         ) : null}
 
         {r.status === 'published' ? <ShareCard registry={r} /> : null}
+        {r.status === 'published' ? (
+          <Card tone="alt" style={{ gap: t.space.sm }}>
+            <Text variant="heading">{tx('ref_title')}</Text>
+            <Text variant="caption" muted>{tx('ref_body')}</Text>
+            <Button title={tx('ref_btn')} kind="secondary" icon="share-social-outline" full={false} onPress={() => { void shareApp(profile?.username); }} />
+          </Card>
+        ) : null}
         {r.plan !== 'premium' ? (
           <Card onPress={() => router.push('/premium')} accessibilityLabel={tx('hm_upgrade')}>
             <Text variant="label" color={t.colors.highlight}>{tx('hm_prem_t')}</Text>
