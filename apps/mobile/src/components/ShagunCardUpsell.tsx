@@ -8,6 +8,7 @@ import { Button, Card, Text } from '@/design-system/components';
 import { useTheme } from '@/design-system/ThemeProvider';
 import { useI18n } from '@/i18n';
 import type { Pledge } from '@/lib/api';
+import { canUseExternalBilling } from '@/lib/billing';
 import { saveCardContext } from '@/lib/cardDraft';
 import { formatINR } from '@/lib/money';
 import { usePlans } from '@/lib/queries';
@@ -18,7 +19,7 @@ export function ShagunCardUpsell({ pledge, partnerOne, partnerTwo, guestName, me
   const t = useTheme();
   const { t: tx } = useI18n();
   const offer = usePlans().data?.shagun_card;
-  if (!offer?.enabled) return null;
+  if (!offer?.enabled || !canUseExternalBilling()) return null;
   const price = formatINR(offer.price_paise);
   const names = `${partnerOne} & ${partnerTwo}`;
   const go = async () => {

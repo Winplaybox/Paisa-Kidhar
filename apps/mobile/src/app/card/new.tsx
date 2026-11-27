@@ -21,6 +21,7 @@ import { DateField } from '@/design-system/DateField';
 import { useTheme } from '@/design-system/ThemeProvider';
 import { useI18n } from '@/i18n';
 import { api } from '@/lib/api';
+import { canUseExternalBilling } from '@/lib/billing';
 import { loadCardContext, loadEditKey, saveEditKey, type CardContext } from '@/lib/cardDraft';
 import { formatINR } from '@/lib/money';
 import { errorMessage, usePlans } from '@/lib/queries';
@@ -35,6 +36,7 @@ export default function NewCard() {
   const plans = usePlans();
   const offer = plans.data?.shagun_card;
   const price = offer ? formatINR(offer.price_paise) : '₹49';
+  const canPay = canUseExternalBilling();
 
   const [ctx, setCtx] = useState<CardContext | null>(null);
   const [editKey, setEditKey] = useState<string | null>(null);
@@ -88,7 +90,7 @@ export default function NewCard() {
   });
 
   const pay = async () => {
-    if (!ctx) return;
+    if (!ctx || !canPay) return;
     if (!EMAIL.test(email.trim())) { setErr(tx('cd_email_err')); return; }
     setBusy(true); setErr(null);
     try {
@@ -167,7 +169,7 @@ export default function NewCard() {
         {step === 1 ? (
           <>
             <Text variant="title">{tx('cd_pick_design')}</Text>
-            <Text muted variant="caption">{tx('cd_unlock', { price })}</Text>
+            {canPay ? <Text muted variant="caption">{tx('cd_unlock', { price })}</Text> : null}
             {ACTIVE_OCCASIONS.length > 1 ? <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: t.space.sm }}>
               <Chip label={tx('cd_all')} selected={filter === 'all'} onPress={() => setFilter('all')} />
               {ACTIVE_OCCASIONS.map((o) => <Chip key={o} label={pick(OCCASION_LABEL[o], appLang as CardLang)} selected={filter === o} onPress={() => setFilter(o)} />)}
@@ -238,7 +240,7 @@ export default function NewCard() {
               <CardStage key={replay} spec={spec} width={Math.min(300, inner)} reveal autoOpenMs={edit ? 600 : 900} celebrate={false} hint={tx('cd_tap_open')} />
             </View>
             <Row style={{ justifyContent: 'center' }}><Button title="↻" kind="ghost" full={false} onPress={() => setReplay((n) => n + 1)} accessibilityHint={tx('cd_replay')} /></Row>
-            {!edit ? (
+            {!edit && canPay ? (
               <>
                 <Card style={{ gap: 6 }}>
                   <Text variant="label">{tx('cd_includes')}</Text>
@@ -250,7 +252,7 @@ export default function NewCard() {
                 <Button title={tx('cd_send', { price })} kind="accent" icon="lock-closed-outline" loading={busy} onPress={pay} />
                 <Text variant="caption" muted style={{ textAlign: 'center' }}>{tx('cd_secure')}</Text>
               </>
-            ) : <Button title={saved ? tx('cd_saved') : tx('cd_save')} kind="accent" icon="checkmark" loading={busy} onPress={saveEdit} />}
+            ) : edit ? <Button title={saved ? tx('cd_saved') : tx('cd_save')} kind="accent" icon="checkmark" loading={busy} onPress={saveEdit} /> : null}
           </>
         ) : null}
       </ScrollView>

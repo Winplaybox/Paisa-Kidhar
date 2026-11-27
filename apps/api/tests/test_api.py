@@ -266,6 +266,7 @@ async def test_account_deletion_request_hides_registries(client, make_user):
 
 async def test_events_allowlist(client):
     assert (await client.post("/v1/events", json={"name": "app_open"})).status_code == 202
+    assert (await client.post("/v1/events", json={"name": "referral_shared", "props": {"has_ref": True}})).status_code == 202
     assert (await client.post("/v1/events", json={"name": "steal_data"})).status_code == 422
 
 

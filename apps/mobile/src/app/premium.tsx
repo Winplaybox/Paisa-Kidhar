@@ -7,7 +7,7 @@ import { Banner, Button, Card, LoadingList, Row, Screen, Text } from '@/design-s
 import { useTheme } from '@/design-system/ThemeProvider';
 import { useI18n } from '@/i18n';
 import { api } from '@/lib/api';
-import { config } from '@/lib/config';
+import { canUseExternalBilling } from '@/lib/billing';
 import { formatINR } from '@/lib/money';
 import { errorMessage, usePlans } from '@/lib/queries';
 import { useCurrentRegistry } from '@/lib/useCurrentRegistry';
@@ -52,7 +52,7 @@ export default function Premium() {
         </Card>
       ) : null}
       {!isPremium ? (
-        plans.data?.payments_enabled && (Platform.OS !== 'android' || config.androidExternalBilling)
+        plans.data?.payments_enabled && canUseExternalBilling()
           ? <Button title={tx('pm_upgrade')} kind="accent" icon="diamond-outline" loading={busy} onPress={buy} />
           : <Banner tone="info" title={tx('pm_soon_t')} body={tx('pm_soon_b')} />
       ) : null}
